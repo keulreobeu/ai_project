@@ -17,9 +17,11 @@
         <FestivalCard v-for="festival in festivals" :key="festival.id" :festival="festival" />
       </div>
       <div class="pagination" v-if="totalPages > 1">
+        <button :disabled="page === 1" @click="loadFestivals(1)">««</button>
         <button :disabled="page === 1" @click="loadFestivals(page - 1)">이전</button>
         <button v-for="p in visiblePages" :key="p" :class="{ active: p === page }" @click="loadFestivals(p)">{{ p }}</button>
         <button :disabled="page === totalPages" @click="loadFestivals(page + 1)">다음</button>
+        <button :disabled="page === totalPages" @click="loadFestivals(totalPages)">»»</button>
       </div>
     </div>
   </section>
@@ -39,8 +41,8 @@ const totalCount = ref(0);
 
 const visiblePages = computed(() => {
   const pages = [];
-  const start = Math.max(1, page.value - 2);
-  const end = Math.min(totalPages.value, page.value + 2);
+  const start = Math.max(1, page.value - 3);
+  const end = Math.min(totalPages.value, page.value + 3);
   for (let p = start; p <= end; p += 1) {
     pages.push(p);
   }
@@ -63,8 +65,10 @@ const loadFestivals = async (targetPage = 1) => {
       totalCount.value = payload.length;
     } else {
       festivals.value = payload.items || [];
-      totalPages.value = payload.total_pages || 1;
-      totalCount.value = payload.total_count || 0;
+      const totalCountFromPayload = Number(payload.total_count || 0);
+      const limit = Number(payload.limit || 20);
+      totalPages.value = payload.total_pages || Math.max(1, Math.ceil(totalCountFromPayload / limit));
+      totalCount.value = totalCountFromPayload;
     }
   } catch (err) {
     error.value = true;
