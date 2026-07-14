@@ -1,8 +1,11 @@
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from app.services import fetch_festival_detail, fetch_festivals, fetch_nearby_places
+
+
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -13,15 +16,45 @@ from openai_client import OpenAIClient
 DATA_ROOT = Path(__file__).resolve().parent.parent / "data" / "서울"
 TEST_PAGE_PATH = Path(__file__).resolve().parent / "test_page.html"
 
-app = FastAPI(
-    title="Seoul Local Festival Chatbot API",
-    description="서울 지역 축제, 공연, 관광지, 문화시설, 쇼핑, 숙박 데이터를 이용한 FastAPI 기반 챗봇 백엔드",
-    version="0.1.0",
-)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]) 
 
+app = FastAPI(title="Seoul Festival API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# 데이터 로드 및 OpenAI 클라이언트 초기화
 data_store = SeoulDataStore(DATA_ROOT)
 openai_client = OpenAIClient()
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/api/festivals")
+def list_festivals(keyword: str | None = None):
+    return fetch_festivals(keyword=keyword)
+
+
+@app.get("/api/festivals/{festival_id}")
+def get_festival(festival_id: int):
+    festival = fetch_festival_detail(festival_id)
+    if not festival:
+        raise HTTPException(status_code=404, detail="festival not found")
+    return festival
+
+
+@app.get("/api/festivals/{festival_id}/nearby")
+def get_nearby_places(festival_id: int):
+    return fetch_nearby_places(festival_id)
+
 
 
 class ChatRequest(BaseModel):
