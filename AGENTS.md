@@ -1,136 +1,163 @@
-# gstack — AI Engineering Workflow
+# AGENTS.md
 
-gstack is a collection of SKILL.md files that give AI agents structured roles for
-software development. Each skill is a specialist: CEO reviewer, eng manager,
-designer, QA lead, release engineer, debugger, and more.
+이 저장소는 VS Code GitHub Copilot Agent에서 gstack 스타일의 작업 흐름을 참고하기 위해 구성되었다.
 
-## Available skills
+Copilot은 이 문서와 `.agents/skills/` 내부의 `SKILL.md` 파일들을 참고하여 작업한다.
 
-Skills live in `.agents/skills/` (or `~/.claude/skills/gstack/` on Claude Code).
-Invoke them by name (e.g., `/office-hours`).
+## 목적
 
-### Plan-mode reviews
+이 프로젝트의 AI Agent는 단순히 코드를 바로 작성하는 것이 아니라, 작업 유형에 따라 적절한 스킬을 선택하고 다음 흐름으로 진행한다.
 
-| Skill | What it does |
-|-------|-------------|
-| `/office-hours` | Start here. Reframes your product idea before you write code. |
-| `/plan-ceo-review` | CEO-level review: find the 10-star product in the request. |
-| `/plan-eng-review` | Lock architecture, data flow, edge cases, and tests. |
-| `/plan-design-review` | Rate each design dimension 0-10, explain what a 10 looks like. |
-| `/plan-devex-review` | DX-mode review: TTHW, magical moments, friction points, persona traces. |
-| `/plan-tune` | Self-tune AskUserQuestion sensitivity per question. |
-| `/autoplan` | One command runs CEO → design → eng → DX review. |
-| `/design-consultation` | Build a complete design system from scratch. |
-| `/spec` | Turn vague intent into a precise, executable spec in five phases. Files a GitHub issue, optionally spawns a Claude Code agent in a fresh worktree, and lets `/ship` close the source issue on merge. |
+1. 요청 의도 파악
+2. 관련 스킬 선택
+3. 작업 계획 수립
+4. 최소 단위로 구현
+5. 검증 방법 제안
+6. 변경 내용 요약
 
-### Implementation + review
+## Skill 위치
 
-| Skill | What it does |
-|-------|-------------|
-| `/review` | Pre-landing PR review. Finds bugs that pass CI but break in prod. |
-| `/codex` | Second opinion via OpenAI Codex. Review, challenge, or consult modes. |
-| `/investigate` | Systematic root-cause debugging. No fixes without investigation. |
-| `/design-review` | Live-site visual audit + fix loop with atomic commits. |
-| `/design-shotgun` | Generate multiple AI design variants, comparison board, iterate. |
-| `/design-html` | Generate production-quality Pretext-native HTML/CSS. |
-| `/devex-review` | Live developer experience audit (TTHW measured against the real flow). |
-| `/qa` | Open a real browser, find bugs, fix them, re-verify. |
-| `/qa-only` | Same methodology as /qa but report only — no code changes. |
-| `/scrape` | Pull data from a web page. First call prototypes; codified call runs in ~200ms. |
-| `/skillify` | Codify the most recent successful `/scrape` flow into a permanent browser-skill. |
+스킬 문서는 아래 위치에 있다.
 
-### Release + deploy
-
-| Skill | What it does |
-|-------|-------------|
-| `/ship` | Run tests, review, push, open PR. Workspace-aware version queue. |
-| `/land-and-deploy` | Merge the PR, wait for CI and deploy, verify production health. |
-| `/canary` | Post-deploy monitoring loop using the browse daemon. |
-| `/landing-report` | Read-only dashboard for the workspace-aware ship queue. |
-| `/document-release` | Update all docs to match what you just shipped. |
-| `/document-generate` | Generate Diataxis docs (tutorial / how-to / reference / explanation) from code. |
-| `/setup-deploy` | One-time deploy config detection (Fly.io, Render, Vercel, etc.). |
-| `/gstack-upgrade` | Update gstack to the latest version. |
-
-### Operational + memory
-
-| Skill | What it does |
-|-------|-------------|
-| `/context-save` | Save working context (git state, decisions, remaining work). |
-| `/context-restore` | Resume from a saved context, even across Conductor workspaces. |
-| `/learn` | Manage what gstack learned across sessions. |
-| `/retro` | Weekly retro with per-person breakdowns and shipping streaks. |
-| `/health` | Code quality dashboard (type checker, linter, tests, dead code). |
-| `/benchmark` | Performance regression detection (page load, Core Web Vitals). |
-| `/benchmark-models` | Cross-model benchmark for skills (Claude, GPT, Gemini side-by-side). |
-| `/cso` | OWASP Top 10 + STRIDE security audit. |
-| `/setup-gbrain` | Set up gbrain for cross-machine session memory sync. |
-| `/sync-gbrain` | Keep gbrain current with this repo's code; refresh agent search guidance in CLAUDE.md. |
-
-### Browser + agent integration
-
-| Skill | What it does |
-|-------|-------------|
-| `/browse` | Headless browser — real Chromium, real clicks, ~100ms/command. |
-| `/open-gstack-browser` | Launch the visible GStack Browser with sidebar + stealth. |
-| `/setup-browser-cookies` | Import cookies from your real browser for authenticated testing. |
-| `/pair-agent` | Pair a remote AI agent (OpenClaw, Codex, etc.) with your browser. |
-
-### iOS QA — drive real iPhones over USB or Tailscale (v1.43.0.0+)
-
-| Skill | What it does |
-|-------|-------------|
-| `/ios-qa` | Live-device iOS QA via USB CoreDevice tunnel + embedded StateServer. Optionally exposes the device over Tailscale so remote agents can drive it. |
-| `/ios-fix` | Autonomous iOS bug fixer with regression snapshot capture. |
-| `/ios-design-review` | Designer's-eye QA on a real iPhone — 10-dimension Apple HIG rubric. |
-| `/ios-clean` | Convenience: strip DebugBridge + #if DEBUG wiring before a Release build. |
-| `/ios-sync` | Regenerate the iOS debug bridge against the latest upstream templates. |
-
-Companion CLIs (run on the Mac that's plugged into the device):
-
-| Command | What it does |
-|---------|-------------|
-| `gstack-ios-qa-daemon` | Mac-side broker. Loopback by default; `--tailnet` adds a Tailscale-facing listener with capability tiers and audit logging. |
-| `gstack-ios-qa-mint` | Owner-grant CLI for the tailnet allowlist (`grant`/`revoke`/`list`). |
-
-End-to-end walkthrough: [docs/howto-ios-testing-with-gstack.md](docs/howto-ios-testing-with-gstack.md).
-
-### Safety + scoping
-
-| Skill | What it does |
-|-------|-------------|
-| `/careful` | Warn before destructive commands (rm -rf, DROP TABLE, force-push). |
-| `/freeze` | Lock edits to one directory. Hard block, not just a warning. |
-| `/guard` | Activate both careful + freeze at once. |
-| `/unfreeze` | Remove directory edit restrictions. |
-| `/make-pdf` | Turn any markdown file into a publication-quality PDF. |
-| `/diagram` | English in, diagram out: mermaid source + editable .excalidraw + SVG/PNG, offline. |
-
-## Build commands
-
-```bash
-bun install              # install dependencies
-bun test                 # run free tests (no API spend)
-bun run test:windows     # curated Windows-safe subset (runs on windows-latest)
-bun run build            # generate docs + compile binaries
-bun run gen:skill-docs   # regenerate SKILL.md files from templates
-bun run skill:check      # health dashboard for all skills
+```text
+.agents/skills/
 ```
 
-## Platform support
+각 스킬은 다음과 같은 구조를 가진다.
 
-- **macOS** + **Linux**: full test suite supported.
-- **Windows**: curated Windows-safe subset runs on `windows-latest` via the
-  `windows-free-tests` CI job. Setup script (`./setup`) requires Git Bash or
-  MSYS today; native PowerShell support is a future expansion. The `bin/gstack-paths`
-  helper resolves state roots through `CLAUDE_PLUGIN_DATA` / `GSTACK_HOME` so plugin
-  installs work on every platform.
+```text
+.agents/skills/{skill-name}/SKILL.md
+```
 
-## Key conventions
+예시:
 
-- SKILL.md files are **generated** from `.tmpl` templates. Edit the template, not the output.
-- Run `bun run gen:skill-docs --host codex` to regenerate Codex-specific output.
-- The browse binary provides headless browser access. Use `$B <command>` in skills.
-- Safety skills (careful, freeze, guard) use inline advisory prose — always confirm before destructive operations.
-- State paths resolve via `bin/gstack-paths` (sourced via `eval "$(...)"`). Honors `GSTACK_HOME`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PLANS_DIR`.
-- The `claude` CLI binary resolves via `browse/src/claude-bin.ts` (`Bun.which()` + `GSTACK_CLAUDE_BIN` override). Set `GSTACK_CLAUDE_BIN=wsl` plus `GSTACK_CLAUDE_BIN_ARGS='["claude"]'` to run Claude through WSL on Windows.
+```text
+.agents/skills/spec/SKILL.md
+.agents/skills/autoplan/SKILL.md
+.agents/skills/plan-eng-review/SKILL.md
+.agents/skills/investigate/SKILL.md
+.agents/skills/review/SKILL.md
+.agents/skills/qa/SKILL.md
+.agents/skills/docs/SKILL.md
+.agents/skills/careful/SKILL.md
+```
+
+## 기본 사용 규칙
+
+Copilot은 사용자의 요청을 보고 가장 적절한 스킬을 선택해야 한다.
+
+사용자가 특정 스킬을 직접 언급한 경우, 해당 스킬을 우선 참고한다.
+
+예시:
+
+```text
+.agents/skills/spec/SKILL.md를 참고해서 명세 작성해줘.
+```
+
+```text
+gstack의 autoplan 방식으로 구현 계획을 짜줘.
+```
+
+```text
+review 스킬 기준으로 코드 리뷰해줘.
+```
+
+## 주요 스킬
+
+| Skill             | 용도                     |
+| ----------------- | ---------------------- |
+| `spec`            | 기능 요구사항을 구현 가능한 명세로 정리 |
+| `autoplan`        | 전체 작업 계획 작성            |
+| `plan-eng-review` | 개발/구현 관점에서 계획 검토       |
+| `investigate`     | 버그 원인 분석 및 디버깅         |
+| `review`          | 코드 리뷰                  |
+| `qa`              | 테스트 및 검증 관점 점검         |
+| `docs`            | 문서화                    |
+| `careful`         | 실수 방지, 변경 전 위험 점검      |
+
+## 작업 방식
+
+Copilot은 작업 전에 다음 내용을 짧게 정리한다.
+
+```text
+- 어떤 작업인지
+- 어떤 스킬을 참고할지
+- 변경 범위가 어디까지인지
+- 위험하거나 확인이 필요한 부분이 있는지
+```
+
+단순 질문에는 긴 계획 없이 바로 답변해도 된다.
+
+## 코드 변경 원칙
+
+코드를 수정할 때는 다음 원칙을 따른다.
+
+1. 한 번에 너무 많은 파일을 바꾸지 않는다.
+2. 변경 이유를 명확히 설명한다.
+3. 기존 동작을 깨뜨릴 가능성이 있으면 먼저 언급한다.
+4. 테스트 가능한 경우 테스트 방법을 같이 제안한다.
+5. 불확실한 요구사항은 임의로 확장하지 않는다.
+6. 보안 정보, API 키, 비밀번호, 토큰은 코드에 포함하지 않는다.
+
+## 명령어처럼 보이는 표현 처리
+
+`/spec`, `/debug`, `/review`, `/qa`, `/docs`, `/autoplan` 같은 표현은 실제 터미널 명령어가 아니다.
+
+이 표현들은 `.agents/skills/` 안의 해당 스킬 문서를 참고하라는 의미로 해석한다.
+
+예시:
+
+```text
+/spec 로그인 기능 정리해줘
+```
+
+위 요청은 다음 의미로 처리한다.
+
+```text
+.agents/skills/spec/SKILL.md를 참고해서 로그인 기능을 구현 가능한 명세로 정리한다.
+```
+
+## 기본 응답 형식
+
+가능하면 다음 순서로 답변한다.
+
+```text
+1. 이해한 내용
+2. 적용할 스킬
+3. 작업 계획
+4. 구현 또는 분석 결과
+5. 검증 방법
+6. 다음 작업 제안
+```
+
+단, 사용자가 짧은 답변을 원하거나 단순 질문을 한 경우에는 간단히 답변한다.
+
+## 금지 사항
+
+* 스킬 문서를 실제 실행 가능한 프로그램처럼 취급하지 않는다.
+* slash command를 터미널 명령어로 실행하지 않는다.
+* 사용자가 요청하지 않은 대규모 리팩토링을 하지 않는다.
+* 민감한 정보를 저장소에 커밋하지 않는다.
+* `.env`, 토큰, 비밀번호, 인증 키를 노출하지 않는다.
+
+## 권장 사용 예시
+
+```text
+.agents/skills/autoplan/SKILL.md를 참고해서 게시판 CRUD 구현 계획을 짜줘.
+```
+
+```text
+.agents/skills/spec/SKILL.md를 참고해서 이 요구사항을 명세로 바꿔줘.
+```
+
+```text
+.agents/skills/investigate/SKILL.md를 참고해서 이 에러 원인을 분석해줘.
+```
+
+```text
+.agents/skills/review/SKILL.md 기준으로 이 코드 리뷰해줘.
+```
+
+```text
+.agents/skills/qa/SKILL.md 기준으로 테스트 케이스를 정리해줘.
+```
