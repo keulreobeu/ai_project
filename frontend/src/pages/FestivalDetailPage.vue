@@ -1,9 +1,13 @@
 <template>
   <section>
     <router-link to="/">← 목록으로 돌아가기</router-link>
-    <div class="detail-layout">
+    <div v-if="loading" class="state-card">상세 정보를 불러오는 중입니다...</div>
+    <div v-else-if="error" class="state-card error">상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
+    <div v-else-if="!festival.title" class="state-card">선택하신 축제 정보를 찾을 수 없습니다.</div>
+    <div v-else class="detail-layout">
       <div class="map-box">
         <div class="map-content">
+          <img v-if="festival.image_url || festival.thumbnail_url" class="detail-image" :src="festival.image_url || festival.thumbnail_url" :alt="festival.title" @error="onImageError" />
           <h2>{{ festival.title }}</h2>
           <p>{{ festival.address }}</p>
           <p>지도에서 행사 위치와 주변 추천 장소를 확인할 수 있는 영역입니다.</p>
@@ -27,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import FestivalMap from '../components/FestivalMap.vue';
 import MapPreview from '../components/MapPreview.vue';
@@ -36,6 +40,8 @@ const props = defineProps({ festivalId: String });
 const route = useRoute();
 const festival = ref({ title: '', address: '' });
 const nearbyPlaces = ref([]);
+const loading = ref(false);
+const error = ref(false);
 
 const getCategoryLabel = (category) => {
   const map = {
@@ -48,13 +54,34 @@ const getCategoryLabel = (category) => {
   return map[category] || '추천장소';
 };
 
-onMounted(async () => {
+const loadFestivalDetail = async () => {
   const id = props.festivalId || route.params.festivalId;
-  const [festivalResponse, nearbyResponse] = await Promise.all([
-    fetch(`/api/festivals/${id}`),
-    fetch(`/api/festivals/${id}/nearby`)
-  ]);
-  festival.value = await festivalResponse.json();
-  nearbyPlaces.value = await nearbyResponse.json();
-});
+  if (!id) return;
+  loading.value = true;
+  error.value = false;
+  try {
+    const [festivalResponse, nearbyResponse] = await Promise.all([
+      fetch(`/api/festivals/${id}`),
+      fetch(`/api/festivals/${id}/nearby`)
+    ]);
+    if (!festivalResponse.ok) {
+      throw new Error('festival fetch failed');
+    }
+    festival.value = await festivalResponse.json();
+    nearbyPlaces.value = await nearbyResponse.json();
+  } catch (err) {
+    error.value = true;
+    festival.value = { title: '', address: '' };
+    nearbyPlaces.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const onImageError = (event) => {
+  event.target.style.display = 'none';
+};
+
+onMounted(loadFestivalDetail);
+watch(() => route.params.festivalId, loadFestivalDetail);
 </script>

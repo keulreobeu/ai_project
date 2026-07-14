@@ -1,6 +1,21 @@
 from pydantic import BaseModel
 
 
+class PaginationMeta(BaseModel):
+    page: int
+    limit: int
+    total_count: int
+    total_pages: int
+
+
+class FestivalListResponse(BaseModel):
+    items: list[dict]
+    page: int
+    limit: int
+    total_count: int
+    total_pages: int
+
+
 class FestivalOut(BaseModel):
     id: int
     title: str
