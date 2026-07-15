@@ -17,7 +17,6 @@ class FestivalListResponse(BaseModel):
     limit: int
     total_count: int
     total_pages: int
->>>>>>> origin/main
 
 
 class FestivalOut(BaseModel):

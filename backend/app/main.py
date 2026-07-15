@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.services import (
@@ -11,11 +10,9 @@ from pydantic import BaseModel
 from app.orm import SessionLocal
 from app.models import CommunityPost
 from app.services import _verify_password
-=======
 from contextlib import asynccontextmanager
 from math import ceil
 from typing import Annotated
->>>>>>> origin/main
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware

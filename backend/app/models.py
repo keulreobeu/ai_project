@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
-=======
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
->>>>>>> origin/main
 from app.orm import Base
 from datetime import datetime
 
