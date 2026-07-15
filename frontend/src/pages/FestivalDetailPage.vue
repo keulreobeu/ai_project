@@ -68,7 +68,12 @@ const loadFestivalDetail = async () => {
       throw new Error('festival fetch failed');
     }
     festival.value = await festivalResponse.json();
-    nearbyPlaces.value = await nearbyResponse.json();
+    if (nearbyResponse.ok) {
+      const nearbyPayload = await nearbyResponse.json();
+      nearbyPlaces.value = Array.isArray(nearbyPayload) ? nearbyPayload : [];
+    } else {
+      nearbyPlaces.value = [];
+    }
   } catch (err) {
     error.value = true;
     festival.value = { title: '', address: '' };

@@ -1,6 +1,13 @@
+import re
+from hmac import compare_digest
+from math import asin, cos, radians, sin, sqrt
+from typing import Dict, List, Optional, Tuple
+
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from app.models import Place
-from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut, FestivalListResponse
+
+from app.models import Place, Post
+from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut, FestivalListResponse, PostCreate, PostUpdate
 from app.orm import SessionLocal
 
 
@@ -103,5 +110,234 @@ def fetch_nearby_places(festival_id: int, limit: int = 10):
             ).model_dump()
             for row in rows
         ]
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# 챗봇 RAG 파이프라인: 1단계(축제 검색) / 3단계(축제 앵커 기준 카테고리별 거리순 조회)
+# ---------------------------------------------------------------------------
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    rlat1, rlon1, rlat2, rlon2 = map(radians, (lat1, lon1, lat2, lon2))
+    dlat = rlat2 - rlat1
+    dlon = rlon2 - rlon1
+    a = sin(dlat / 2) ** 2 + cos(rlat1) * cos(rlat2) * sin(dlon / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(a))
+
+
+def _extract_keywords(question: str) -> List[str]:
+    tokens = re.split(r"[\s,.!?~]+", question.strip())
+    return [token for token in tokens if len(token) >= 2][:5]
+
+
+# content_type_id: 12=관광지, 14=문화시설, 15=축제, 28=레포츠, 32=숙박, 38=쇼핑
+CATEGORY_LABEL_MAP: Dict[str, List[int]] = {
+    "관광지": [12],
+    "문화시설": [14],
+    "레포츠": [28],
+    "숙박": [32],
+    "쇼핑": [38],
+}
+
+# 자유 텍스트에서 동행/분위기를 감지하기 위한 경량 키워드 사전(형태소 분석기 없이 substring 매칭)
+COMPANION_HINT_KEYWORDS: Dict[str, List[str]] = {
+    "가족": ["가족", "아이랑", "아이와", "아이들", "키즈", "패밀리"],
+    "연인": ["연인", "커플", "데이트", "남자친구", "여자친구"],
+    "친구": ["친구"],
+    "혼자": ["혼자", "나홀로", "솔로"],
+}
+
+
+def detect_companion_hint(question: str) -> Optional[str]:
+    for hint, words in COMPANION_HINT_KEYWORDS.items():
+        if any(word in question for word in words):
+            return hint
+    return None
+
+
+def search_festivals_for_chat(
+    question: str,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    limit: int = 8,
+) -> List[Place]:
+    """1단계: 자유 텍스트 질문으로 '축제(15)'만 검색한다.
+
+    지역은 title/address1 LIKE 검색으로, 동행 힌트는 제목 재정렬 휴리스틱으로 반영한다.
+    """
+    db: Session = SessionLocal()
+    try:
+        candidates: Dict[int, Place] = {}
+
+        keywords = _extract_keywords(question)
+        if keywords:
+            query = db.query(Place).filter(Place.content_type_id == 15)
+            like_conditions = [Place.title.like(f"%{kw}%") for kw in keywords] + [
+                Place.address1.like(f"%{kw}%") for kw in keywords
+            ]
+            rows = query.filter(or_(*like_conditions)).limit(limit).all()
+            for row in rows:
+                candidates[row.place_id] = row
+
+        # 키워드 매칭이 없으면(또는 부족하면) 최신 축제 순으로 보충 — 챗봇이 항상 뭔가는 추천하도록
+        if len(candidates) < limit:
+            fallback_rows = (
+                db.query(Place)
+                .filter(Place.content_type_id == 15)
+                .order_by(Place.place_id.desc())
+                .limit(limit - len(candidates))
+                .all()
+            )
+            for row in fallback_rows:
+                candidates.setdefault(row.place_id, row)
+
+        results: List[Place] = list(candidates.values())
+
+        # 동행 힌트가 감지되면, 제목에 관련 단어가 포함된 후보를 앞으로 재정렬(매칭 없으면 순서 그대로 유지)
+        companion_hint = detect_companion_hint(question)
+        if companion_hint:
+            hint_words = COMPANION_HINT_KEYWORDS[companion_hint]
+
+            def _hint_sort_key(place: Place) -> bool:
+                title = place.title or ""
+                return not any(word in title for word in hint_words)
+
+            results.sort(key=_hint_sort_key)
+
+        # 사용자 위치가 있으면 가까운 축제를 우선 노출(정렬만 다시 함, 동행 힌트 재정렬보다 우선)
+        if lat is not None and lon is not None:
+
+            def _distance_sort_key(place: Place) -> float:
+                if place.latitude is None or place.longitude is None:
+                    return float("inf")
+                return _haversine_km(lat, lon, place.latitude, place.longitude)
+
+            results.sort(key=_distance_sort_key)
+
+        return results[:limit]
+    finally:
+        db.close()
+
+
+def get_place(place_id: int) -> Optional[Place]:
+    db: Session = SessionLocal()
+    try:
+        return db.query(Place).filter(Place.place_id == place_id).first()
+    finally:
+        db.close()
+
+
+def nearby_by_category_from_anchor(
+    anchor: Place,
+    category: str,
+    limit: int = 5,
+    delta: float = 0.1,  # 약 11km 대응 바운딩 박스
+) -> List[Tuple[Place, float]]:
+    """3단계: 선택된 축제(anchor) 주변에서 지정 카테고리를 거리순으로 반환한다."""
+    allowed_types = CATEGORY_LABEL_MAP.get(category)
+    if not allowed_types or anchor.latitude is None or anchor.longitude is None:
+        return []
+
+    anchor_lat: float = anchor.latitude
+    anchor_lon: float = anchor.longitude
+
+    db: Session = SessionLocal()
+    try:
+        rows = (
+            db.query(Place)
+            .filter(Place.content_type_id.in_(allowed_types))
+            .filter(Place.place_id != anchor.place_id)
+            .filter(Place.latitude.between(anchor_lat - delta, anchor_lat + delta))
+            .filter(Place.longitude.between(anchor_lon - delta, anchor_lon + delta))
+            .limit(200)
+            .all()
+        )
+        scored: List[Tuple[Place, float]] = [
+            (row, _haversine_km(anchor_lat, anchor_lon, row.latitude, row.longitude))
+            for row in rows
+            if row.latitude is not None and row.longitude is not None
+        ]
+        scored.sort(key=lambda pair: pair[1])
+        return scored[:limit]
+    finally:
+        db.close()
+
+
+def list_posts(
+    db: Session,
+    page: int = 1,
+    limit: int = 20,
+    keyword: str | None = None,
+    region_id: int = 1,
+) -> tuple[list[Post], int]:
+    query = db.query(Post).filter(Post.region_id == region_id)
+    if keyword:
+        pattern = f"%{keyword.strip()}%"
+        query = query.filter(or_(Post.title.like(pattern), Post.content.like(pattern)))
+    total_count = query.count()
+    rows = (
+        query.order_by(Post.created_at.desc(), Post.post_id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return rows, total_count
+
+
+def get_post(db: Session, post_id: int) -> Post | None:
+    return db.query(Post).filter(Post.post_id == post_id).first()
+
+
+def create_post(db: Session, payload: PostCreate) -> Post:
+    post = Post(
+        region_id=payload.region_id,
+        title=payload.title.strip(),
+        content=payload.content.strip(),
+        edit_password=payload.password,
+    )
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def update_post(db: Session, post: Post, payload: PostUpdate) -> Post:
+    if not compare_digest(post.edit_password, payload.password):
+        raise PermissionError("password mismatch")
+    if payload.title is not None:
+        post.title = payload.title.strip()
+    if payload.content is not None:
+        post.content = payload.content.strip()
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def delete_post(db: Session, post: Post, password: str) -> None:
+    if not compare_digest(post.edit_password, password):
+        raise PermissionError("password mismatch")
+    db.delete(post)
+    db.commit()
+
+
+def search_posts_for_chat(question: str, limit: int = 5) -> list[Post]:
+    keywords = _extract_keywords(question)
+    if not keywords:
+        return []
+
+    db: Session = SessionLocal()
+    try:
+        conditions = []
+        for keyword in keywords:
+            pattern = f"%{keyword}%"
+            conditions.extend([Post.title.like(pattern), Post.content.like(pattern)])
+        return (
+            db.query(Post)
+            .filter(or_(*conditions))
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+            .all()
+        )
     finally:
         db.close()
