@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from app import services
 from app.config import get_cors_origins
 from app.models import Place, Post
-from app.openai_client import OpenAIClient
+from app.openai_client import OpenAIClient, GeminiClient
 from app.orm import Base, ENGINE, get_db
 from app.schemas import (
     ChatRequest,
@@ -55,7 +55,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="LocalHub API", lifespan=lifespan)
-openai_client = OpenAIClient()
+# openai_client = OpenAIClient()
+openai_client = GeminiClient()
 
 app.add_middleware(
     CORSMiddleware,
