@@ -1,6 +1,19 @@
+<<<<<<< HEAD
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+=======
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+>>>>>>> origin/main
 from app.orm import Base
 from datetime import datetime
+
+
+class Region(Base):
+    __tablename__ = "regions"
+
+    region_id = Column(Integer, primary_key=True)
+    region_name = Column(String, nullable=False, unique=True)
 
 
 class Place(Base):
@@ -36,3 +49,18 @@ class CommunityPost(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     view_count = Column(Integer, default=0)
+class Post(Base):
+    __tablename__ = "posts"
+
+    post_id = Column(Integer, primary_key=True, autoincrement=True)
+    region_id = Column(Integer, ForeignKey("regions.region_id"), nullable=False, index=True)
+    title = Column(String(120), nullable=False)
+    content = Column(Text, nullable=False)
+    edit_password = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

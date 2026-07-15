@@ -1,9 +1,8 @@
 import json
-import os
 import sqlite3
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data" / "서울"
 DB_PATH = ROOT / "project" / "seoul_festival.db"
 
@@ -25,8 +24,7 @@ def load_json(path: Path):
 
 
 def ensure_db():
-    if DB_PATH.exists():
-        DB_PATH.unlink()
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
     conn.commit()
@@ -57,6 +55,20 @@ def import_places(conn, region_id: int):
                     zipcode, tel, latitude, longitude, thumbnail_url, image_url, map_level,
                     source_data, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(region_id, content_type_id, external_content_id) DO UPDATE SET
+                    title = excluded.title,
+                    address1 = excluded.address1,
+                    address2 = excluded.address2,
+                    zipcode = excluded.zipcode,
+                    tel = excluded.tel,
+                    latitude = excluded.latitude,
+                    longitude = excluded.longitude,
+                    thumbnail_url = excluded.thumbnail_url,
+                    image_url = excluded.image_url,
+                    map_level = excluded.map_level,
+                    source_data = excluded.source_data,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at
                 """,
                 (
                     region_id,
@@ -82,6 +94,7 @@ def import_places(conn, region_id: int):
 
 
 def build_relationships(conn):
+    conn.execute("DELETE FROM festival_related_places")
     festival_rows = conn.execute(
         "SELECT place_id, latitude, longitude FROM places WHERE content_type_id = 15"
     ).fetchall()
@@ -117,6 +130,7 @@ def build_relationships(conn):
 def main():
     ensure_db()
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys=ON")
     region_id = 1
 
     import_places(conn, region_id)
