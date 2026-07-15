@@ -151,7 +151,6 @@ def fetch_nearby_places(festival_id: int, limit: int = 10):
         db.close()
 
 
-<<<<<<< HEAD
 # Community Post Services
 def create_community_post(post_data: CommunityPostCreate) -> CommunityPostOut:
     db: Session = SessionLocal()
@@ -170,7 +169,8 @@ def create_community_post(post_data: CommunityPostCreate) -> CommunityPostOut:
         db.commit()
         db.refresh(db_post)
         return CommunityPostOut.model_validate(db_post)
-=======
+    finally:
+        db.close()
 # ---------------------------------------------------------------------------
 # 챗봇 RAG 파이프라인: 1단계(축제 검색) / 3단계(축제 앵커 기준 카테고리별 거리순 조회)
 # ---------------------------------------------------------------------------
@@ -317,12 +317,10 @@ def nearby_by_category_from_anchor(
         ]
         scored.sort(key=lambda pair: pair[1])
         return scored[:limit]
->>>>>>> origin/main
     finally:
         db.close()
 
 
-<<<<<<< HEAD
 def get_community_posts(category: str, limit: int = 20) -> list[CommunityPostListOut]:
     db: Session = SessionLocal()
     try:
@@ -379,7 +377,6 @@ def delete_community_post(post_id: int, password: str) -> bool:
         return True
     finally:
         db.close()
-=======
 def list_posts(
     db: Session,
     page: int = 1,
@@ -457,4 +454,3 @@ def search_posts_for_chat(question: str, limit: int = 5) -> list[Post]:
         )
     finally:
         db.close()
->>>>>>> origin/main
