@@ -25,3 +25,18 @@ def test_festival_detail_endpoint_returns_detail():
     response = client.get("/api/festivals/1")
     assert response.status_code == 200
     assert "title" in response.json()
+
+
+def test_festivals_endpoint_supports_pagination():
+    response = client.get("/api/festivals", params={"page": 1, "limit": 20})
+    assert response.status_code == 200
+    payload = response.json()
+    assert "items" in payload
+    assert isinstance(payload["items"], list)
+    assert payload["page"] == 1
+    assert payload["limit"] == 20
+
+
+def test_festival_detail_endpoint_returns_404_for_missing_festival():
+    response = client.get("/api/festivals/999999")
+    assert response.status_code == 404

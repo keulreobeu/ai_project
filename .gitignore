@@ -64,6 +64,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.db-shm
+*.db-wal
 
 # Flask stuff:
 instance/
@@ -207,6 +209,3 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,python,vuejs
-
-plan.md
-research.md

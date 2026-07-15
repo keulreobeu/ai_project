@@ -3,18 +3,18 @@
 
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE regions (
+CREATE TABLE IF NOT EXISTS regions (
     region_id INTEGER PRIMARY KEY AUTOINCREMENT,
     region_name TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE content_types (
+CREATE TABLE IF NOT EXISTS content_types (
     content_type_id INTEGER PRIMARY KEY,
     code_name TEXT NOT NULL UNIQUE,
     display_name TEXT NOT NULL
 );
 
-CREATE TABLE places (
+CREATE TABLE IF NOT EXISTS places (
     place_id INTEGER PRIMARY KEY AUTOINCREMENT,
     region_id INTEGER NOT NULL,
     content_type_id INTEGER NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE places (
     FOREIGN KEY (content_type_id) REFERENCES content_types(content_type_id)
 );
 
-CREATE TABLE festival_related_places (
+CREATE TABLE IF NOT EXISTS festival_related_places (
     festival_id INTEGER NOT NULL,
     related_place_id INTEGER NOT NULL,
     related_content_type_id INTEGER NOT NULL,
@@ -49,16 +49,29 @@ CREATE TABLE festival_related_places (
     FOREIGN KEY (related_content_type_id) REFERENCES content_types(content_type_id)
 );
 
-CREATE INDEX idx_places_region_type ON places(region_id, content_type_id);
-CREATE INDEX idx_places_title ON places(title);
-CREATE INDEX idx_places_geo ON places(latitude, longitude);
-CREATE INDEX idx_related_festival ON festival_related_places(festival_id);
-CREATE INDEX idx_related_type ON festival_related_places(related_content_type_id);
+CREATE TABLE IF NOT EXISTS posts (
+    post_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    region_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    edit_password TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (region_id) REFERENCES regions(region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_places_region_type ON places(region_id, content_type_id);
+CREATE INDEX IF NOT EXISTS idx_places_title ON places(title);
+CREATE INDEX IF NOT EXISTS idx_places_geo ON places(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_related_festival ON festival_related_places(festival_id);
+CREATE INDEX IF NOT EXISTS idx_related_type ON festival_related_places(related_content_type_id);
+CREATE INDEX IF NOT EXISTS idx_posts_region_created ON posts(region_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_title ON posts(title);
 
 -- 기본 분류값 seed
-INSERT INTO regions(region_name) VALUES ('서울');
+INSERT OR IGNORE INTO regions(region_name) VALUES ('서울');
 
-INSERT INTO content_types(content_type_id, code_name, display_name) VALUES
+INSERT OR IGNORE INTO content_types(content_type_id, code_name, display_name) VALUES
 (12, 'tourist_attraction', '관광지'),
 (14, 'culture_facility', '문화시설'),
 (15, 'festival_event', '축제공연행사'),

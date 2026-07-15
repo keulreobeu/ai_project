@@ -1,24 +1,29 @@
 import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:  # Allows non-chat endpoints and tests to run before optional deps are installed.
+    OpenAI = None
+
+from app.config import OPENAI_MODEL
 
 
 class OpenAIClient:
     def __init__(self) -> None:
         self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
-        self._client: Optional[OpenAI] = OpenAI(api_key=self.api_key) if self.api_key else None
+        self._client: Optional[Any] = OpenAI(api_key=self.api_key) if OpenAI and self.api_key else None
 
     def ensure_api_key(self) -> None:
         if not self._client:
             raise RuntimeError(
-                "OPENAI_API_KEY 환경 변수가 설정되어 있지 않습니다. .env 또는 실행 환경에 키를 추가하세요."
+                "OpenAI 클라이언트가 설치되지 않았거나 OPENAI_API_KEY 환경 변수가 설정되지 않았습니다."
             )
 
     def chat_completion(
         self,
         messages: List[Dict[str, str]],
-        model: str = "gpt-4o-mini",
+        model: str = OPENAI_MODEL,
         temperature: float = 0.5,
         max_tokens: int = 500,
     ) -> str:
