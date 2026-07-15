@@ -9,6 +9,7 @@
           <ul class="nav-links">
             <li><router-link to="/">축제</router-link></li>
             <li><router-link to="/community">커뮤니티</router-link></li>
+            <li><router-link to="/calendar">캘린더</router-link></li>
           </ul>
         </div>
       </div>
@@ -22,6 +23,7 @@
           <router-link to="/">축제</router-link>
           <router-link to="/events">행사</router-link>
           <router-link to="/community">커뮤니티</router-link>
+          <router-link to="/calendar">캘린더</router-link>
         </nav>
       </div>
     </header>

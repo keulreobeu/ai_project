@@ -33,6 +33,8 @@ class Place(Base):
     source_data = Column(String)
     created_at = Column(String)
     updated_at = Column(String)
+    event_start_date = Column(String)
+    event_end_date = Column(String)
 
 
 class CommunityPost(Base):

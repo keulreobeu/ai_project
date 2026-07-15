@@ -22,7 +22,8 @@ def test_festivals_endpoint_returns_list():
 
 
 def test_festival_detail_endpoint_returns_detail():
-    response = client.get("/api/festivals/1")
+    festivals = client.get("/api/festivals").json()
+    response = client.get(f"/api/festivals/{festivals[0]['id']}")
     assert response.status_code == 200
     assert "title" in response.json()
 

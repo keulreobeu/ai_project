@@ -33,6 +33,11 @@ class FestivalDetailOut(FestivalOut):
     pass
 
 
+class CalendarFestivalOut(FestivalOut):
+    event_start_date: str
+    event_end_date: str
+
+
 class NearbyPlaceOut(BaseModel):
     id: int
     title: str
@@ -41,6 +46,7 @@ class NearbyPlaceOut(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     thumbnail_url: str | None = None
+    distance_km: float | None = None
 
 
 # Community Post Schemas
