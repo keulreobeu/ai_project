@@ -9,8 +9,8 @@ from typing import List, Optional
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from data_loader import PlaceItem, SeoulDataStore
-from openai_client import OpenAIClient
+from app.data_loader import PlaceItem, SeoulDataStore
+from app.openai_client import OpenAIClient
 
 
 DATA_ROOT = Path(__file__).resolve().parent.parent / "data" / "서울"
