@@ -29,6 +29,7 @@ from app.schemas import (
     ChatRequest,
     ChatResponse,
     ChatSourceOut,
+    CalendarFestivalOut,
     FestivalDetailOut,
     FestivalListResponse,
     FestivalOut,
@@ -90,6 +91,17 @@ def list_festivals(
         raise HTTPException(status_code=503, detail="festival service unavailable") from exc
 
 
+@app.get("/api/festivals/calendar", response_model=list[CalendarFestivalOut])
+def get_calendar_festivals(
+    year: int = Query(ge=2000, le=2100),
+    month: int = Query(ge=1, le=12),
+):
+    try:
+        return services.fetch_calendar_festivals(year, month)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="calendar service unavailable") from exc
+
+
 @app.get("/api/festivals/{festival_id}", response_model=FestivalDetailOut)
 def get_festival(festival_id: int):
     festival = services.fetch_festival_detail(festival_id)
@@ -99,8 +111,17 @@ def get_festival(festival_id: int):
 
 
 @app.get("/api/festivals/{festival_id}/nearby", response_model=list[NearbyPlaceOut])
-def get_nearby_places(festival_id: int):
-    return fetch_nearby_places(festival_id)
+def get_nearby_places(
+    festival_id: int,
+    radius_km: float = Query(default=3.0, ge=0.1, le=20.0),
+    limit: int = Query(default=10, ge=1, le=50),
+    all_places: bool = Query(default=False),
+):
+    return fetch_nearby_places(
+        festival_id,
+        radius_km=radius_km,
+        limit=None if all_places else limit,
+    )
 
 
 # Community Posts APIs

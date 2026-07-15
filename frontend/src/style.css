@@ -45,7 +45,7 @@ a { color: var(--color-primary); text-decoration: none; }
 
 .festival-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 24px;
 }
 
@@ -376,6 +376,10 @@ a { color: var(--color-primary); text-decoration: none; }
 .chat-input-row .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .festival-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 768px) {

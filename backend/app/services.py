@@ -6,6 +6,8 @@ from app.models import Place, CommunityPost
 from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut, CommunityPostCreate, CommunityPostUpdate, CommunityPostOut, CommunityPostListOut
 import re
 from hmac import compare_digest
+from calendar import monthrange
+from datetime import date
 from math import asin, cos, radians, sin, sqrt
 from typing import Dict, List, Optional, Tuple
 
@@ -13,7 +15,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import Place
-from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut, FestivalListResponse
+from app.schemas import CalendarFestivalOut, FestivalOut, FestivalDetailOut, NearbyPlaceOut, FestivalListResponse
 from app.orm import SessionLocal
 from datetime import datetime, timedelta, timezone
 
@@ -116,25 +118,65 @@ def fetch_festival_detail(festival_id: int):
         db.close()
 
 
-def fetch_nearby_places(festival_id: int, limit: int = 10):
+def fetch_calendar_festivals(year: int, month: int):
+    month_start = date(year, month, 1).isoformat()
+    month_end = date(year, month, monthrange(year, month)[1]).isoformat()
+    db: Session = SessionLocal()
+    try:
+        rows = (
+            db.query(Place)
+            .filter(Place.content_type_id == 15)
+            .filter(Place.event_start_date.isnot(None), Place.event_end_date.isnot(None))
+            .filter(Place.event_start_date <= month_end)
+            .filter(Place.event_end_date >= month_start)
+            .order_by(Place.event_start_date, Place.event_end_date, Place.title)
+            .all()
+        )
+        return [
+            CalendarFestivalOut(
+                id=row.place_id,
+                title=row.title or "",
+                address=row.address1,
+                thumbnail_url=row.thumbnail_url,
+                image_url=row.image_url,
+                latitude=row.latitude,
+                longitude=row.longitude,
+                event_start_date=row.event_start_date,
+                event_end_date=row.event_end_date,
+            ).model_dump()
+            for row in rows
+        ]
+    finally:
+        db.close()
+
+
+def fetch_nearby_places(festival_id: int, radius_km: float = 3.0, limit: int | None = 10):
     db: Session = SessionLocal()
     try:
         festival = db.query(Place).filter(Place.place_id == festival_id, Place.content_type_id == 15).first()
         if not festival or festival.latitude is None or festival.longitude is None:
             return []
 
+        latitude_delta = radius_km / 111.0
+        longitude_scale = max(cos(radians(festival.latitude)), 0.01)
+        longitude_delta = radius_km / (111.0 * longitude_scale)
         rows = (
             db.query(Place)
             .filter(Place.place_id != festival_id, Place.content_type_id.in_([12, 14, 28, 32, 38]))
             .filter(Place.latitude.isnot(None), Place.longitude.isnot(None))
-            .order_by(
-                ((Place.latitude - festival.latitude) * (Place.latitude - festival.latitude) +
-                 (Place.longitude - festival.longitude) * (Place.longitude - festival.longitude)).asc()
-            )
-            .limit(limit)
+            .filter(Place.latitude.between(festival.latitude - latitude_delta, festival.latitude + latitude_delta))
+            .filter(Place.longitude.between(festival.longitude - longitude_delta, festival.longitude + longitude_delta))
             .all()
         )
 
+        scored = [
+            (row, _haversine_km(festival.latitude, festival.longitude, row.latitude, row.longitude))
+            for row in rows
+        ]
+        scored = [(row, distance) for row, distance in scored if distance <= radius_km]
+        scored.sort(key=lambda pair: pair[1])
+
+        selected_places = scored if limit is None else scored[:limit]
         return [
             NearbyPlaceOut(
                 id=row.place_id,
@@ -144,8 +186,9 @@ def fetch_nearby_places(festival_id: int, limit: int = 10):
                 latitude=row.latitude,
                 longitude=row.longitude,
                 thumbnail_url=row.thumbnail_url,
+                distance_km=round(distance, 3),
             ).model_dump()
-            for row in rows
+            for row, distance in selected_places
         ]
     finally:
         db.close()
