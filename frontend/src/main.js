@@ -3,11 +3,13 @@ import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import FestivalListPage from './pages/FestivalListPage.vue';
 import FestivalDetailPage from './pages/FestivalDetailPage.vue';
+import CommunityPage from './pages/CommunityPage.vue';
 import './style.css';
 
 const routes = [
   { path: '/', component: FestivalListPage },
-  { path: '/festivals/:festivalId', component: FestivalDetailPage, props: true }
+  { path: '/festivals/:festivalId', component: FestivalDetailPage, props: true },
+  { path: '/community', component: CommunityPage }
 ];
 
 const router = createRouter({

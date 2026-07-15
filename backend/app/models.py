@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from app.orm import Base
+from datetime import datetime
 
 
 class Place(Base):
@@ -22,3 +23,16 @@ class Place(Base):
     source_data = Column(String)
     created_at = Column(String)
     updated_at = Column(String)
+
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+
+    post_id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, nullable=False)  # "festival", "restaurant", etc.
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    password = Column(String, nullable=False)  # 평문 저장 (교육 목적)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    view_count = Column(Integer, default=0)
