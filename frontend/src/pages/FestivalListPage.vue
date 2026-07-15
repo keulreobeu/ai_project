@@ -30,6 +30,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import FestivalCard from '../components/FestivalCard.vue';
+import { fetchFestivals } from '../api/festivals';
 
 const festivals = ref([]);
 const keyword = ref('');
@@ -38,11 +39,21 @@ const error = ref(false);
 const page = ref(1);
 const totalPages = ref(1);
 const totalCount = ref(0);
+const MAX_VISIBLE_PAGE_BUTTONS = 5;
 
 const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const currentPage = page.value;
+  const halfWindow = Math.floor(MAX_VISIBLE_PAGE_BUTTONS / 2);
+
+  let start = Math.max(1, currentPage - halfWindow);
+  let end = Math.min(total, start + MAX_VISIBLE_PAGE_BUTTONS - 1);
+
+  if (end - start + 1 < MAX_VISIBLE_PAGE_BUTTONS) {
+    start = Math.max(1, end - MAX_VISIBLE_PAGE_BUTTONS + 1);
+  }
+
   const pages = [];
-  const start = Math.max(1, page.value - 3);
-  const end = Math.min(totalPages.value, page.value + 3);
   for (let p = start; p <= end; p += 1) {
     pages.push(p);
   }
@@ -54,11 +65,7 @@ const loadFestivals = async (targetPage = 1) => {
   error.value = false;
   page.value = targetPage;
   try {
-    const response = await fetch(`/api/festivals?page=${targetPage}&limit=20&keyword=${encodeURIComponent(keyword.value)}`);
-    if (!response.ok) {
-      throw new Error('failed');
-    }
-    const payload = await response.json();
+    const payload = await fetchFestivals({ page: targetPage, limit: 20, keyword: keyword.value });
     if (Array.isArray(payload)) {
       festivals.value = payload;
       totalPages.value = 1;

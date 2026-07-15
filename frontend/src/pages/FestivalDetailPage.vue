@@ -35,6 +35,7 @@ import { ref, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import FestivalMap from '../components/FestivalMap.vue';
 import MapPreview from '../components/MapPreview.vue';
+import { fetchFestival, fetchNearbyPlaces } from '../api/festivals';
 
 const props = defineProps({ festivalId: String });
 const route = useRoute();
@@ -60,20 +61,16 @@ const loadFestivalDetail = async () => {
   loading.value = true;
   error.value = false;
   try {
-    const [festivalResponse, nearbyResponse] = await Promise.all([
-      fetch(`/api/festivals/${id}`),
-      fetch(`/api/festivals/${id}/nearby`)
+    const [festivalResult, nearbyResult] = await Promise.allSettled([
+      fetchFestival(id),
+      fetchNearbyPlaces(id)
     ]);
-    if (!festivalResponse.ok) {
-      throw new Error('festival fetch failed');
+    if (festivalResult.status === 'rejected') {
+      throw festivalResult.reason;
     }
-    festival.value = await festivalResponse.json();
-    if (nearbyResponse.ok) {
-      const nearbyPayload = await nearbyResponse.json();
-      nearbyPlaces.value = Array.isArray(nearbyPayload) ? nearbyPayload : [];
-    } else {
-      nearbyPlaces.value = [];
-    }
+    festival.value = festivalResult.value;
+    const nearbyPayload = nearbyResult.status === 'fulfilled' ? nearbyResult.value : [];
+    nearbyPlaces.value = Array.isArray(nearbyPayload) ? nearbyPayload : [];
   } catch (err) {
     error.value = true;
     festival.value = { title: '', address: '' };

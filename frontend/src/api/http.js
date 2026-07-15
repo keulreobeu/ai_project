@@ -8,10 +8,9 @@ export async function request(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       signal: options.signal || controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
+      headers: options.body
+        ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        : { ...(options.headers || {}) },
     });
     if (response.status === 204) return null;
     const payload = await response.json().catch(() => ({}));

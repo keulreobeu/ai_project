@@ -30,7 +30,7 @@ class FestivalOut(BaseModel):
 
 
 class FestivalDetailOut(FestivalOut):
-    image_url: str | None = None
+    pass
 
 
 class NearbyPlaceOut(BaseModel):

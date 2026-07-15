@@ -1,5 +1,4 @@
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import get_database_url
@@ -19,7 +18,7 @@ class Base(DeclarativeBase):
 
 
 if IS_SQLITE:
-    @event.listens_for(Engine, "connect")
+    @event.listens_for(ENGINE, "connect")
     def configure_sqlite(connection, _):
         cursor = connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")

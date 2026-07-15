@@ -19,6 +19,7 @@ from app.schemas import (
     ChatSourceOut,
     FestivalDetailOut,
     FestivalListResponse,
+    FestivalOut,
     NearbyPlaceOut,
     PostCreate,
     PostListResponse,
@@ -69,7 +70,7 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.get("/api/festivals", response_model=FestivalListResponse | list[dict])
+@app.get("/api/festivals", response_model=FestivalListResponse | list[FestivalOut])
 def list_festivals(
     keyword: str | None = None,
     page: int | None = Query(default=None, ge=1),

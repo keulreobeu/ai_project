@@ -49,6 +49,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { normalizeFestivalPayload } from '../utils/festivalResponse';
+import { fetchFestivals } from '../api/festivals';
 
 const events = ref([]);
 const loading = ref(false);
@@ -74,11 +75,7 @@ const loadEvents = async (targetPage = 1) => {
   error.value = false;
   page.value = targetPage;
   try {
-    const response = await fetch(`/api/festivals?page=${targetPage}&limit=${pageSize}${keyword.value ? `&keyword=${encodeURIComponent(keyword.value)}` : ''}`);
-    if (!response.ok) {
-      throw new Error('failed');
-    }
-    const payload = await response.json();
+    const payload = await fetchFestivals({ page: targetPage, limit: pageSize, keyword: keyword.value });
     const normalized = normalizeFestivalPayload(payload, targetPage);
     events.value = normalized.items || [];
     totalPages.value = normalized.totalPages || 1;

@@ -20,7 +20,12 @@ def get_database_url() -> str:
         return configured_url
 
     configured_path = os.getenv("DB_PATH", "").strip()
-    db_path = Path(configured_path).expanduser() if configured_path else DEFAULT_DB_PATH
+    if configured_path:
+        db_path = Path(configured_path).expanduser()
+        if not db_path.is_absolute():
+            db_path = PROJECT_ROOT / db_path
+    else:
+        db_path = DEFAULT_DB_PATH
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{db_path.resolve().as_posix()}"
 
