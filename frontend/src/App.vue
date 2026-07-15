@@ -9,9 +9,10 @@
     <main class="container">
       <router-view />
     </main>
-    <button class="chatbot-floating" aria-label="챗봇 열기">💬</button>
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
+import ChatWidget from './components/ChatWidget.vue';
 </script>

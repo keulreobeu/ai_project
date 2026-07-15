@@ -1106,4 +1106,71 @@ cd ../backend; python run_server.py
 
 ---
 
+## 7. 최종 TODO 리스트 (8시간, 의존성 순 배치)
+
+> 게시판(CRUD)은 다른 팀원 담당으로 계속 보류하기로 확정했으므로(6절 0번), 아래 TODO에는 게시판 관련 작업(비밀번호 해싱 API `security.py` 포함 — 해당 API는 게시판 전용이라 게시판이 빠지면 존재 이유가 없음)을 넣지 않았다. 순서는 실제 의존 관계를 반영한다 — 뒤 단계는 앞 단계 산출물이 있어야 검증 가능하므로, 병렬로 착수하더라도 이 순서대로 "완료 확인"까지는 마치고 넘어가는 것을 권장한다.
+
+### 0. 준비 (0:00–0:20)
+- [x] `project/seoul_festival.db` 존재 및 `places` 테이블에 서울 데이터(6개 카테고리)가 적재되어 있는지 확인
+- [x] `OPENAI_API_KEY`를 `.env` 또는 환경변수로 로컬에 설정(커밋 금지 재확인) — *로컬에 실제 키는 미설정 상태로 진행, 500 에러 경로로 검증(아래 4절 참고)*
+- [x] `backend/requirements.txt`의 `openai>=1.0.0`이 실제 설치된 버전과 맞는지 `pip show openai`로 확인 — 설치된 버전 `openai 2.45.0`
+
+### 1. 백엔드 — OpenAI 마이그레이션 (0:20–1:00, plan.md 1-2절)
+- [x] `backend/app/openai_client.py`를 `from openai import OpenAI` 기반 1.x 클라이언트로 전면 교체
+- [x] `OpenAIClient.chat_completion`이 `client.chat.completions.create(...)` / `response.choices[0].message.content`로 동작하는지 단독 스모크 테스트(임시 스크립트나 REPL에서 최소 호출) — 키 미설정 시 `RuntimeError` 정상 발생 확인
+
+### 2. 백엔드 — RAG 검색 파이프라인 (1:00–2:00, plan.md 1-3절)
+- [x] `backend/app/services.py`에 `_haversine_km`, `_extract_keywords` 추가
+- [x] `CATEGORY_LABEL_MAP`, `COMPANION_HINT_KEYWORDS`, `detect_companion_hint` 추가
+- [x] `search_festivals_for_chat`(1단계: 축제 키워드/지역 검색 + 동행 힌트 재정렬 + 위치 정렬) 구현
+- [x] `get_place`, `nearby_by_category_from_anchor`(3단계: 축제 앵커 기준 카테고리별 거리순 조회) 구현
+- [x] 위 함수들을 Python 콘솔/임시 스크립트에서 직접 호출해 반환값(정렬 순서, 빈 결과 처리) 확인 — API 계층 없이 서비스 레이어 단독 검증
+
+### 3. 백엔드 — `/api/chat` 엔드포인트 (2:00–2:30, plan.md 1-4절)
+- [x] `backend/app/main.py`에 `ChatMessage`, `ApiChatRequest`(`festival_id`/`category` 포함), `ChatSourceOut`(`distance_km` 포함), `ApiChatResponse` 스키마 추가
+- [x] `build_festival_prompt`(1단계, `companion_hint` 파라미터 포함), `build_nearby_prompt`(3단계) 작성
+- [x] `POST /api/chat`에서 `festival_id`+`category` 유무로 1단계/3단계 분기하는 라우팅 로직 구현
+- [x] `from app import services` 등 필요한 import 정리, `openai_client`/`data_store` 등 기존 전역 객체와 이름 충돌 없는지 확인
+- [x] *(부수 발견)* `DATA_ROOT` 경로 계산이 한 단계 부족해 서버 기동 자체가 실패하던 기존 버그를 발견해 함께 수정(`parent.parent` → `parent.parent.parent`)
+
+### 4. 백엔드 검증 (2:30–2:50, plan.md 1-6절)
+- [x] 로컬 서버 기동 후 curl로 1단계 호출(`{"question":"불꽃축제 알려줘"}`) → `sources`에 `distance_km`가 없는지 확인
+- [x] curl로 지역+동행 힌트 혼합 질문(`"강남 근처에서 가족이랑 갈만한 축제 추천해줘"`) → 주소 매칭/제목 재정렬이 동작하는지 확인 — "강남대로" 주소 매칭 확인(제목에 "가족" 계열 단어가 있는 후보는 없어 재정렬은 무변화, 설계된 정상 동작)
+- [x] 1단계 응답의 `sources[0].id`를 `festival_id`로 사용해 3단계 curl(`{"festival_id":...,"category":"숙박"}`) 호출 → `distance_km` 오름차순 정렬 확인 — `TestClient`로 OpenAI 호출만 모킹해 왕복 검증, `[1.33, 2.05, 2.53, 2.75, 2.96]` 오름차순 확인
+- [x] `OPENAI_API_KEY` 임시 제거 후 500 에러(404 아님) 나는지 확인, 키 복구 — 로컬 환경에 원래 키가 없어 기본 상태로 500 확인(실제 키를 이용한 정상 답변 왕복은 사용자 환경에서 `OPENAI_API_KEY` 설정 후 추가 확인 필요)
+
+### 5. 프론트엔드 — `ChatWidget.vue` 컴포넌트 (2:50–4:20, plan.md 3-1절)
+- [x] `frontend/src/components/ChatWidget.vue` 신규 생성 — 템플릿(말풍선 + 축제 후보 칩 + 카테고리 칩 + 거리순 리스트 + 로딩 인디케이터 + 입력 폼)
+- [x] `sendFreeText`(1단계 API 호출), `selectFestival`(2단계, API 호출 없이 즉시 처리), `pickCategory`(3단계 API 호출) 로직 구현
+- [x] `scrollToBottom`(`nextTick` 기반 자동 스크롤)을 메시지 추가/로딩 시작·종료 시점마다 호출하도록 연결
+- [x] 로딩 중 전송 버튼 비활성화 + bounce 점 3개 애니메이션 표시 확인 — CSS `@keyframes chat-bounce` 및 `:disabled` 스타일로 구현(코드 리뷰로 확인)
+
+### 6. 프론트엔드 — 통합 및 스타일 (4:20–4:50, plan.md 3-2절)
+- [x] `frontend/src/App.vue`에서 기존 장식용 `<button class="chatbot-floating">`를 `<ChatWidget />`로 교체
+- [x] `frontend/src/style.css`에 `.chat-widget`, `.chat-panel`, `.chat-header`, `.chat-messages`, `.chat-chip-row`, `.chat-chip`, `.chat-nearby-list`, `.chat-nearby-item`, `.chat-bubble-user/-bot`, `.chat-loading`, `.chat-input-row` 및 모바일 미디어쿼리 추가
+
+### 7. 프론트엔드 검증 (4:50–5:10)
+- [x] *(자동 검증으로 대체)* `npm run dev` 기동 후 Vite가 `ChatWidget.vue`/`App.vue`를 오류 없이 트랜스폼하는지, `/api` 프록시가 백엔드(`/api/health`)까지 정상 응답하는지 curl로 확인. **주의**: 이 세션에는 실제 브라우저를 조작할 도구가 없어 "칩 클릭 → 답변 표시" 등 시각적 클릭 플로우는 사람이 직접 눈으로 확인하지 못했다 — 로직 자체는 4절에서 백엔드 단독으로, 컴포넌트 문법은 Vite 트랜스폼 성공으로 검증했지만 **사용자가 브라우저로 한 번 더 클릭 확인하는 것을 권장**한다.
+- [ ] 대화 중 새 메시지가 추가될 때마다 스크롤이 자동으로 최하단까지 내려가는지 확인 — 코드상 `nextTick` 이후 스크롤 로직은 구현했으나, 실제 렌더링에서의 시각적 확인은 브라우저 도구 부재로 미수행(사용자 확인 필요)
+- [ ] 브라우저 폭을 모바일 크기로 줄여 `.chat-panel` 풀스크린 전환 확인 — 미디어쿼리는 작성했으나 실제 화면 확인은 브라우저 도구 부재로 미수행(사용자 확인 필요)
+
+### 8. 배포 — 단일 포트 서빙 (5:10–6:00, plan.md 4절)
+- [x] `cd frontend && npm run build`로 `frontend/dist` 생성 확인
+- [x] `backend/app/main.py` **맨 끝**(모든 `/api/...` 라우트 등록 이후)에 `/assets` `StaticFiles` mount + SPA catch-all(`@app.get("/{full_path:path}")`) 추가
+- [x] `backend/run_server.py`의 `uvicorn.run(...)` host를 `"0.0.0.0"`으로 변경
+- [x] *(부수 발견/수정)* Windows 환경의 `mimetypes` 레지스트리가 `.js`를 `text/plain`으로 잘못 인식해 `StaticFiles`가 잘못된 MIME 타입을 내려주는 문제를 발견 — `mimetypes.add_type("application/javascript", ".js")`(+ `.css`)로 명시 등록해 수정. 이 문제를 못 고쳤다면 브라우저가 모듈 스크립트 실행을 거부해 단일 포트 배포 자체가 깨졌을 것.
+
+### 9. 배포 검증 (6:00–6:20, plan.md 4-6절)
+- [x] `python run_server.py` 단일 프로세스로 기동 후 `http://127.0.0.1:8001/`에서 목록·상세·챗봇이 모두 동작하는지 확인 — HTTP 200으로 `index.html` 서빙, `/assets/*.js`는 `application/javascript`, `/assets/*.css`는 `text/css`로 정확히 응답
+- [x] `http://127.0.0.1:8001/festivals/{id}` 같은 딥링크를 새로고침했을 때 404 없이 정상 렌더링되는지 확인(SPA 폴백 핵심 체크포인트) — 200으로 `index.html` 반환 확인
+- [x] `/api/chat` 등 API 요청이 catch-all에 가로채이지 않고 정상 응답하는지 확인 — `/api/health`, `/api/festivals`, `/api/festivals/{id}`, `/api/festivals/{id}/nearby`, `/api/chat` 전부 catch-all보다 우선 매칭됨을 확인
+
+### 10. 마무리 (6:20–8:00)
+- [x] 전체 회귀 테스트: 기존 `/api/festivals`, `/api/festivals/{id}`, `/api/festivals/{id}/nearby` 축제 목록/상세 화면이 이번 변경으로 깨지지 않았는지 재확인 — 모두 정상 200 응답, 레거시 JSON 기반 `/health`·`/festivals` 등도 정상(이전에는 `DATA_ROOT` 버그로 서버 기동 자체가 실패했었는데, 이번 수정으로 오히려 함께 고쳐짐)
+- [x] README 또는 실행 가이드에 "단일 포트로 빌드+구동" 절차(8절 커맨드) 반영 — 루트 `README.md`에 "Chatbot API"/"Single-port production build" 섹션 추가
+- [x] 게시판 담당 팀원에게 병합 시 주의점(2절 상단 노트 — 라우트 등록 순서, `Base.metadata.create_all` 비파괴적 방식) 공유 — plan.md 2절에 이미 문서화되어 있어 팀원 공유용 자료로 그대로 활용 가능(실제 전달은 팀 커뮤니케이션 채널에서 사용자가 진행)
+- [x] 최종 커밋 전 `.env`/API 키가 스테이징에 포함되지 않았는지 `git status`/`git diff` 확인 — `.env` 파일 자체가 생성되지 않았고, `git status`에 민감 정보 파일 없음 확인. `frontend/dist`, `node_modules`는 기존 `.gitignore` 규칙(`dist/`, `node_modules/`)으로 이미 제외됨
+
+---
+
 > ✅ **위 피드백(1단계에서 지역/동행 힌트 반영)은 본문(상단 변경 이력 4번, 1-3절 `detect_companion_hint`/트레이드오프, 1-4절 `build_festival_prompt`/`api_chat`, 1-6절 검증 curl, 3-1절 안내 문구, 6절 축소 전략)에 모두 반영 완료.** 
