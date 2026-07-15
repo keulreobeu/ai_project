@@ -60,34 +60,6 @@ class CommunityPostUpdate(BaseModel):
 class CommunityPostOut(BaseModel):
     post_id: int
     category: str
-class PostCreate(BaseModel):
-    region_id: int = Field(default=1, ge=1)
-    title: str = Field(min_length=1, max_length=120)
-    content: str = Field(min_length=1, max_length=10_000)
-    password: str = Field(min_length=4, max_length=100)
-
-
-class PostUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=120)
-    content: str | None = Field(default=None, min_length=1, max_length=10_000)
-    password: str = Field(min_length=4, max_length=100)
-
-    @model_validator(mode="after")
-    def require_change(self):
-        if self.title is None and self.content is None:
-            raise ValueError("title or content is required")
-        return self
-
-
-class PostPasswordRequest(BaseModel):
-    password: str = Field(min_length=4, max_length=100)
-
-
-class PostOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    post_id: int
-    region_id: int
     title: str
     content: str
     created_at: datetime
@@ -105,25 +77,6 @@ class CommunityPostListOut(BaseModel):
     view_count: int
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class PostSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    post_id: int
-    region_id: int
-    title: str
-    content: str
-    created_at: datetime
-    updated_at: datetime
-
-
-class PostListResponse(BaseModel):
-    items: list[PostSummary]
-    page: int
-    limit: int
-    total_count: int
-    total_pages: int
 
 
 class ChatMessage(BaseModel):

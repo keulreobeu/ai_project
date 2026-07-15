@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app import services
 from app.config import get_cors_origins
-from app.models import Place, Post
+from app.models import Place
 from app.openai_client import OpenAIClient
 from app.orm import Base, ENGINE, get_db
 from app.schemas import (
@@ -32,12 +32,7 @@ from app.schemas import (
     FestivalDetailOut,
     FestivalListResponse,
     FestivalOut,
-    NearbyPlaceOut,
-    PostCreate,
-    PostListResponse,
-    PostOut,
-    PostPasswordRequest,
-    PostUpdate,
+    NearbyPlaceOut
 )
 
 
@@ -108,6 +103,7 @@ def get_nearby_places(festival_id: int):
 
 
 # Community Posts APIs
+# Community Posts APIs
 @app.post("/api/community/posts")
 def create_post(post_data: CommunityPostCreate):
     try:
@@ -173,74 +169,9 @@ def delete_post(post_id: int, password: str = Query(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    try:
-        return services.fetch_nearby_places(festival_id)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="nearby service unavailable") from exc
 
 
-DbSession = Annotated[Session, Depends(get_db)]
-
-
-@app.get("/api/posts", response_model=PostListResponse)
-def list_community_posts(
-    db: DbSession,
-    page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, ge=1, le=50),
-    q: str | None = Query(default=None, max_length=120),
-    region_id: int = Query(default=1, ge=1),
-):
-    rows, total_count = services.list_posts(db, page=page, limit=limit, keyword=q, region_id=region_id)
-    return PostListResponse(
-        items=rows,
-        page=page,
-        limit=limit,
-        total_count=total_count,
-        total_pages=ceil(total_count / limit) if total_count else 0,
-    )
-
-
-@app.post("/api/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED)
-def create_community_post(payload: PostCreate, db: DbSession):
-    return services.create_post(db, payload)
-
-
-@app.get("/api/posts/{post_id}", response_model=PostOut)
-def get_community_post(post_id: int, db: DbSession):
-    post = services.get_post(db, post_id)
-    if not post:
-        raise HTTPException(status_code=404, detail="post not found")
-    return post
-
-
-@app.patch("/api/posts/{post_id}", response_model=PostOut)
-def update_community_post(post_id: int, payload: PostUpdate, db: DbSession):
-    post = services.get_post(db, post_id)
-    if not post:
-        raise HTTPException(status_code=404, detail="post not found")
-    try:
-        return services.update_post(db, post, payload)
-    except PermissionError as exc:
-        raise HTTPException(status_code=403, detail="password mismatch") from exc
-
-
-@app.delete("/api/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_community_post(
-    post_id: int,
-    db: DbSession,
-    payload: PostPasswordRequest = Body(...),
-):
-    post = services.get_post(db, post_id)
-    if not post:
-        raise HTTPException(status_code=404, detail="post not found")
-    try:
-        services.delete_post(db, post, payload.password)
-    except PermissionError as exc:
-        raise HTTPException(status_code=403, detail="password mismatch") from exc
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def build_chat_prompt(question: str, places: list[Place], posts: list[Post]) -> str:
+def build_chat_prompt(question: str, places: list[Place], posts: list[CommunityPost]) -> str:
     place_text = "\n".join(
         f"- {place.title} | 주소: {place.address1 or '정보 없음'} | 전화: {place.tel or '정보 없음'}"
         for place in places
@@ -273,7 +204,7 @@ def build_nearby_prompt(anchor: Place, category: str, scored: list[tuple[Place, 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     distance_by_id: dict[int, float] = {}
-    posts: list[Post] = []
+    posts: list[CommunityPost] = []
 
     if request.festival_id is not None and request.category:
         if request.category not in services.CATEGORY_LABEL_MAP:
