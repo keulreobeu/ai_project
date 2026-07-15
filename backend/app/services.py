@@ -1,33 +1,61 @@
 import re
+from hmac import compare_digest
 from math import asin, cos, radians, sin, sqrt
 from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.models import Place
-from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut
+from app.models import Place, Post
+from app.schemas import FestivalOut, FestivalDetailOut, NearbyPlaceOut, FestivalListResponse, PostCreate, PostUpdate
 from app.orm import SessionLocal
 
 
-def fetch_festivals(limit: int = 20, keyword: str | None = None):
+def fetch_festivals(page: int | None = None, limit: int | None = None, keyword: str | None = None):
     db: Session = SessionLocal()
     try:
         query = db.query(Place).filter(Place.content_type_id == 15)
         if keyword:
             query = query.filter(Place.title.like(f"%{keyword}%"))
-        rows = query.order_by(Place.place_id).limit(limit).all()
-        return [
+
+        if page is None and limit is None:
+            rows = query.order_by(Place.place_id).limit(20).all()
+            return [
+                FestivalOut(
+                    id=row.place_id,
+                    title=row.title or "",
+                    address=row.address1,
+                    thumbnail_url=row.thumbnail_url,
+                    image_url=row.image_url,
+                    latitude=row.latitude,
+                    longitude=row.longitude,
+                ).model_dump()
+                for row in rows
+            ]
+
+        page = max(1, page or 1)
+        limit = max(1, min(limit or 20, 50))
+        total_count = query.count()
+        rows = query.order_by(Place.place_id).offset((page - 1) * limit).limit(limit).all()
+        items = [
             FestivalOut(
                 id=row.place_id,
                 title=row.title or "",
                 address=row.address1,
                 thumbnail_url=row.thumbnail_url,
+                image_url=row.image_url,
                 latitude=row.latitude,
                 longitude=row.longitude,
             ).model_dump()
             for row in rows
         ]
+        return FestivalListResponse(
+            items=items,
+            page=page,
+            limit=limit,
+            total_count=total_count,
+            total_pages=max(1, (total_count + limit - 1) // limit),
+        ).model_dump()
     finally:
         db.close()
 
@@ -232,5 +260,84 @@ def nearby_by_category_from_anchor(
         ]
         scored.sort(key=lambda pair: pair[1])
         return scored[:limit]
+    finally:
+        db.close()
+
+
+def list_posts(
+    db: Session,
+    page: int = 1,
+    limit: int = 20,
+    keyword: str | None = None,
+    region_id: int = 1,
+) -> tuple[list[Post], int]:
+    query = db.query(Post).filter(Post.region_id == region_id)
+    if keyword:
+        pattern = f"%{keyword.strip()}%"
+        query = query.filter(or_(Post.title.like(pattern), Post.content.like(pattern)))
+    total_count = query.count()
+    rows = (
+        query.order_by(Post.created_at.desc(), Post.post_id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return rows, total_count
+
+
+def get_post(db: Session, post_id: int) -> Post | None:
+    return db.query(Post).filter(Post.post_id == post_id).first()
+
+
+def create_post(db: Session, payload: PostCreate) -> Post:
+    post = Post(
+        region_id=payload.region_id,
+        title=payload.title.strip(),
+        content=payload.content.strip(),
+        edit_password=payload.password,
+    )
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def update_post(db: Session, post: Post, payload: PostUpdate) -> Post:
+    if not compare_digest(post.edit_password, payload.password):
+        raise PermissionError("password mismatch")
+    if payload.title is not None:
+        post.title = payload.title.strip()
+    if payload.content is not None:
+        post.content = payload.content.strip()
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def delete_post(db: Session, post: Post, password: str) -> None:
+    if not compare_digest(post.edit_password, password):
+        raise PermissionError("password mismatch")
+    db.delete(post)
+    db.commit()
+
+
+def search_posts_for_chat(question: str, limit: int = 5) -> list[Post]:
+    keywords = _extract_keywords(question)
+    if not keywords:
+        return []
+
+    db: Session = SessionLocal()
+    try:
+        conditions = []
+        for keyword in keywords:
+            pattern = f"%{keyword}%"
+            conditions.extend([Post.title.like(pattern), Post.content.like(pattern)])
+        return (
+            db.query(Post)
+            .filter(or_(*conditions))
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+            .all()
+        )
     finally:
         db.close()
