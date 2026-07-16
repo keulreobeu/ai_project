@@ -7,7 +7,7 @@
       <button class="btn-primary" @click="loadFestivals(1)">검색</button>
     </div>
     <div class="page-actions">
-      <router-link class="btn-secondary" to="/events">다른 행사 더 보기</router-link>
+      <router-link class="btn-secondary" to="/events">행사 목록으로 보기</router-link>
     </div>
     <div v-if="loading" class="state-card">축제 정보를 불러오는 중입니다...</div>
     <div v-else-if="error" class="state-card error">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
@@ -17,11 +17,9 @@
         <FestivalCard v-for="festival in festivals" :key="festival.id" :festival="festival" />
       </div>
       <div class="pagination" v-if="totalPages > 1">
-        <button :disabled="page === 1" @click="loadFestivals(1)">««</button>
-        <button :disabled="page === 1" @click="loadFestivals(page - 1)">이전</button>
+        <button type="button" aria-label="이전 페이지" :disabled="page === 1" @click="loadFestivals(page - 1)">‹</button>
         <button v-for="p in visiblePages" :key="p" :class="{ active: p === page }" @click="loadFestivals(p)">{{ p }}</button>
-        <button :disabled="page === totalPages" @click="loadFestivals(page + 1)">다음</button>
-        <button :disabled="page === totalPages" @click="loadFestivals(totalPages)">»»</button>
+        <button type="button" aria-label="다음 페이지" :disabled="page === totalPages" @click="loadFestivals(page + 1)">›</button>
       </div>
     </div>
   </section>

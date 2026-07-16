@@ -5,7 +5,6 @@
       <div v-else class="festival-image-placeholder">이미지 없음</div>
     </div>
     <div class="festival-card-content">
-      <span class="tag">#축제</span>
       <h3>{{ festival.title }}</h3>
       <p>{{ festival.address }}</p>
       <router-link class="btn-primary" :to="`/festivals/${festival.id}`">자세히 보기</router-link>

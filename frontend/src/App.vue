@@ -19,17 +19,12 @@
       <div class="container">
         <h1>서울 축제와 관광을 한눈에</h1>
         <p>축제 목록부터 지도 기반 추천 정보까지, 서울 여행을 더 쉽게 계획해보세요.</p>
-        <nav class="main-nav" aria-label="주요 메뉴">
-          <router-link to="/">축제</router-link>
-          <router-link to="/events">행사</router-link>
-          <router-link to="/community">커뮤니티</router-link>
-          <router-link to="/calendar">캘린더</router-link>
-        </nav>
       </div>
     </header>
     <main class="container">
       <router-view />
     </main>
+    <footer class="site-footer" />
     <ChatWidget />
   </div>
 </template>
@@ -46,6 +41,13 @@ import ChatWidget from './components/ChatWidget.vue';
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.site-footer {
+  height: 200px;
+  flex: 0 0 200px;
+  margin-top: 80px;
+  background: #0b2b96;
 }
 
 .nav-content {

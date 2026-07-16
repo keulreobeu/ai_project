@@ -25,7 +25,6 @@
           </div>
           <div class="community-body">
             <div class="community-meta">
-              <span class="tag">#행사</span>
               <span class="community-page">페이지 {{ page }}</span>
             </div>
             <h3>{{ festival.title }}</h3>
@@ -36,11 +35,9 @@
       </div>
 
       <div class="pagination" v-if="totalPages > 1">
-        <button :disabled="page === 1" @click="goToPage(1)">««</button>
-        <button :disabled="page === 1" @click="goToPage(page - 1)">이전</button>
+        <button type="button" aria-label="이전 페이지" :disabled="page === 1" @click="goToPage(page - 1)">‹</button>
         <button v-for="p in visiblePages" :key="p" :class="{ active: p === page }" @click="goToPage(p)">{{ p }}</button>
-        <button :disabled="page === totalPages" @click="goToPage(page + 1)">다음</button>
-        <button :disabled="page === totalPages" @click="goToPage(totalPages)">»»</button>
+        <button type="button" aria-label="다음 페이지" :disabled="page === totalPages" @click="goToPage(page + 1)">›</button>
       </div>
     </div>
   </section>
@@ -59,8 +56,20 @@ const totalPages = ref(1);
 const keyword = ref('');
 const sortOrder = ref('latest');
 const pageSize = 20;
+const MAX_VISIBLE_PAGE_BUTTONS = 5;
 
-const visiblePages = computed(() => Array.from({ length: totalPages.value }, (_, index) => index + 1));
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const halfWindow = Math.floor(MAX_VISIBLE_PAGE_BUTTONS / 2);
+  let start = Math.max(1, page.value - halfWindow);
+  let end = Math.min(total, start + MAX_VISIBLE_PAGE_BUTTONS - 1);
+
+  if (end - start + 1 < MAX_VISIBLE_PAGE_BUTTONS) {
+    start = Math.max(1, end - MAX_VISIBLE_PAGE_BUTTONS + 1);
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+});
 
 const sortedEvents = computed(() => {
   const list = [...events.value];

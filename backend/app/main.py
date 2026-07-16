@@ -55,7 +55,11 @@ app = FastAPI(title="LocalHub API", lifespan=lifespan)
 # openai_client = OpenAIClient()
 openai_client = GeminiClient()
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
-
+origins = [
+    #"https://your-vue-app.onrender.com",  # Vue 3가 배포된 Render 실주소 (반드시 입력!)
+    "http://localhost:5173",              # 로컬 개발용 Vue 주소 (Vite 기본값)
+    "http://localhost:3000",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
