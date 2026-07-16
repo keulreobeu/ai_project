@@ -1,11 +1,11 @@
 <template>
   <section>
-    <router-link to="/">← 메인으로 돌아가기</router-link>
-    <h2 class="page-title">커뮤니티/갤러리형 행사 목록</h2>
-    <p>다음 페이지의 서울 행사들을 이어서 확인해보세요.</p>
+    <router-link to="/">← 축제 목록으로 돌아가기</router-link>
+    <h2 class="page-title">행사 목록</h2>
+    <p>서울에서 열리는 다양한 행사를 목록으로 확인해보세요.</p>
 
     <div class="toolbar">
-      <input v-model="keyword" placeholder="행사명 검색" @keyup.enter="applyFilters" />
+      <input v-model="keyword" placeholder="행사명 또는 주소 검색" @keyup.enter="applyFilters" />
       <select v-model="sortOrder">
         <option value="latest">최신순</option>
         <option value="title">제목순</option>
@@ -17,19 +17,16 @@
     <div v-else-if="error" class="state-card error">행사 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
     <div v-else-if="events.length === 0" class="state-card">표시할 행사가 없습니다.</div>
     <div v-else>
-      <div class="community-list">
-        <article v-for="festival in sortedEvents" :key="festival.id" class="community-item">
-          <div class="community-thumb">
+      <div class="event-list">
+        <article v-for="festival in sortedEvents" :key="festival.id" class="event-item">
+          <div class="event-thumb">
             <img v-if="festival.image_url || festival.thumbnail_url" :src="festival.image_url || festival.thumbnail_url" :alt="festival.title" @error="onImageError" />
             <div v-else class="festival-image-placeholder">이미지 없음</div>
           </div>
-          <div class="community-body">
-            <div class="community-meta">
-              <span class="community-page">페이지 {{ page }}</span>
-            </div>
+          <div class="event-body">
             <h3>{{ festival.title }}</h3>
             <p>{{ festival.address }}</p>
-            <router-link class="btn-primary" :to="`/festivals/${festival.id}`">자세히 보기</router-link>
+            <router-link class="event-detail-link" :to="`/festivals/${festival.id}`">자세히 보기</router-link>
           </div>
         </article>
       </div>
@@ -114,3 +111,101 @@ onMounted(() => {
   loadEvents(1);
 });
 </script>
+
+<style scoped>
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px auto;
+  gap: 12px;
+  margin: 20px 0 28px;
+}
+
+.toolbar input,
+.toolbar select {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: white;
+  font: inherit;
+}
+
+.toolbar .btn-primary {
+  min-height: 42px;
+  margin: 0;
+  border-radius: 10px;
+  background: #a6a6a6;
+  font-family: inherit;
+}
+
+.event-list {
+  display: grid;
+  gap: 16px;
+}
+
+.event-item {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  height: 170px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--color-card);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+}
+
+.event-thumb,
+.event-thumb img,
+.event-thumb .festival-image-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.event-thumb img { display: block; object-fit: cover; }
+.event-thumb .festival-image-placeholder { display: grid; place-items: center; background: #f1f5f9; color: var(--color-muted); }
+
+.event-body {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 24px;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+}
+
+.event-body h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0 0 10px;
+  font-size: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.event-body p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.event-detail-link {
+  align-self: flex-end;
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .toolbar { grid-template-columns: 1fr; }
+  .event-item { grid-template-columns: 110px minmax(0, 1fr); height: 160px; }
+  .event-body { padding: 18px; }
+}
+</style>

@@ -4,7 +4,7 @@
     <p>이번 주 추천 축제와 공연 정보를 한눈에 확인해보세요.</p>
     <div class="list-controls">
       <div class="search-bar">
-        <input v-model="keyword" placeholder="축제명을 검색하세요" @keyup.enter="loadFestivals(1)" />
+        <input v-model="keyword" placeholder="축제명 또는 주소를 검색하세요" @keyup.enter="loadFestivals(1)" />
         <button class="btn-primary" @click="loadFestivals(1)">검색</button>
       </div>
       <router-link class="btn-secondary" to="/events">행사 목록</router-link>

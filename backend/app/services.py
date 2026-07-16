@@ -12,7 +12,7 @@ from datetime import date
 from math import asin, cos, radians, sin, sqrt
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models import Place
@@ -22,6 +22,35 @@ from datetime import datetime, timedelta, timezone
 
 # 한국시간대 설정
 KST = timezone(timedelta(hours=9))
+
+# TourAPI category codes stored inside Place.source_data.
+# The labels are searchable, while API responses continue to use the existing schema.
+FESTIVAL_CATEGORY_LABELS = {
+    "A02": ("인문", "문화", "예술", "역사"),
+    "A0207": ("축제",),
+    "A02070200": ("일반축제",),
+    "A0208": ("공연", "행사"),
+    "A02080100": ("전통공연",),
+    "A02080200": ("연극",),
+    "A02080500": ("박람회",),
+    "A02080600": ("전시회",),
+    "A02080800": ("무용",),
+    "A02081000": ("대중콘서트", "콘서트"),
+    "A02081100": ("영화",),
+    "A02081300": ("기타행사",),
+}
+
+
+def _festival_category_codes(keyword: str) -> list[str]:
+    normalized_keyword = "".join(keyword.lower().split())
+    if not normalized_keyword:
+        return []
+
+    return [
+        code
+        for code, labels in FESTIVAL_CATEGORY_LABELS.items()
+        if any(normalized_keyword in "".join(label.lower().split()) for label in labels)
+    ]
 
 def get_current_kst_time():
     """현재 한국 시간 반환"""
@@ -56,7 +85,22 @@ def fetch_festivals(page: int | None = None, limit: int | None = None, keyword: 
     try:
         query = db.query(Place).filter(Place.content_type_id == 15)
         if keyword:
-            query = query.filter(Place.title.like(f"%{keyword}%"))
+            stripped_keyword = keyword.strip()
+            search_term = f"%{stripped_keyword}%"
+            category_codes = _festival_category_codes(stripped_keyword)
+            search_conditions = [
+                Place.title.like(search_term),
+                Place.address1.like(search_term),
+                Place.address2.like(search_term),
+            ]
+            search_conditions.extend(
+                func.json_extract(Place.source_data, f"$.{field}") == code
+                for code in category_codes
+                for field in ("cat1", "cat2", "cat3")
+            )
+            query = query.filter(
+                or_(*search_conditions)
+            )
 
         if page is None and limit is None:
             rows = query.order_by(Place.place_id).limit(20).all()

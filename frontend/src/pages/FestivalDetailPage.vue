@@ -43,8 +43,8 @@
       <div class="info-panel">
         <h3>축제 정보</h3>
         <dl class="festival-summary">
-          <div><dt>시작</dt><dd>{{ festival.event_start_date || '정보 없음' }}</dd></div>
-          <div><dt>끝</dt><dd>{{ festival.event_end_date || '정보 없음' }}</dd></div>
+          <div><dt>시작일자</dt><dd>{{ festival.event_start_date || '정보 없음' }}</dd></div>
+          <div><dt>종료일자</dt><dd>{{ festival.event_end_date || '정보 없음' }}</dd></div>
           <div><dt>위치</dt><dd>{{ festival.address || '정보 없음' }}</dd></div>
           <div><dt>장소</dt><dd>{{ festival.event_place || '정보 없음' }}</dd></div>
           <div><dt>운영시간</dt><dd>{{ festival.playtime || '정보 없음' }}</dd></div>
@@ -57,7 +57,6 @@
         <section class="curated-info">
           <h4>주변 같이 즐기면 좋은 추천 장소</h4>
           <p>{{ festival.nearby_recommendation || '등록된 주변 추천 정보가 없습니다.' }}</p>
-          <small>DB에 등록된 실제 장소와 축제 위치 사이의 거리를 기준으로 Codex가 정리한 추천입니다.</small>
         </section>
         <div class="range-control">
           <div class="range-control-heading">

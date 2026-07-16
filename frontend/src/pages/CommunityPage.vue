@@ -113,7 +113,7 @@ export default {
         { id: 'general', label: '자유게시판' },
         { id: 'festival', label: '축제' },
         { id: 'restaurant', label: '음식점' },
-        { id: 'tips', label: '팁 & 정보' },
+        { id: 'tips', label: '팁&정보' },
       ],
       posts: [],
       searchKeyword: '',
