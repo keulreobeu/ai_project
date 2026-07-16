@@ -12,5 +12,5 @@ services:
         value: 3.11.11
       - key: NODE_VERSION
         value: 22.22.0
-      - key: GEMINI_API_KEY
+      - key: OPENAI_API_KEY
         sync: false
