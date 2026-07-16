@@ -96,6 +96,7 @@ import CommunityPostCard from '../components/CommunityPostCard.vue';
 import CommunityPostForm from '../components/CommunityPostForm.vue';
 import CommunityPostDetail from '../components/CommunityPostDetail.vue';
 import CommunityPostEditForm from '../components/CommunityPostEditForm.vue';
+import { deletePost as deletePostRequest } from '../api/posts';
 
 export default {
   name: 'CommunityPage',
@@ -226,25 +227,17 @@ export default {
     },
     async handleDeletePost(postId, password) {
       try {
-        const response = await fetch(
-            `/api/community/posts/${postId}?password=${encodeURIComponent(password)}`,
-            {
-                method: 'DELETE'
-            }
-        );
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('비밀번호가 올바르지 않습니다.');
-          }
-          throw new Error('게시글 삭제에 실패했습니다.');
-        }
+        await deletePostRequest(postId, password);
         this.showNotification('게시글이 삭제되었습니다', 'success');
         this.closePostDetail();
         this.loadPosts();
       } catch (error) {
         console.error('Failed to delete post:', error);
-        alert(error.message);
-        this.showNotification(error.message, 'error');
+        const message = error.status === 401
+          ? '비밀번호가 올바르지 않습니다.'
+          : '게시글 삭제에 실패했습니다.';
+        alert(message);
+        this.showNotification(message, 'error');
       }
     },
     

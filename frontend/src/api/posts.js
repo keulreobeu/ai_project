@@ -19,6 +19,13 @@ export function updatePost(postId, payload) {
   return request(`/api/community/posts/${postId}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
 
+export function verifyPostPassword(postId, password) {
+  return request(`/api/community/posts/${postId}/verify-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export function deletePost(postId, password) {
   return request(`/api/community/posts/${postId}`, {
     method: 'DELETE',
