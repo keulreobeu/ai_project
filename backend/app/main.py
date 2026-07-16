@@ -183,9 +183,9 @@ def update_post(post_id: int, post_data: CommunityPostUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/community/posts/{post_id}")
-def delete_post(post_id: int, password: str = Query(...)):
+def delete_post(post_id: int, payload: PasswordVerifyRequest):
     try:
-        success = delete_community_post(post_id, password)
+        success = delete_community_post(post_id, payload.password)
         if not success:
             raise HTTPException(status_code=401, detail="invalid password or post not found")
         return {"message": "post deleted successfully"}
