@@ -52,8 +52,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="LocalHub API", lifespan=lifespan)
-# openai_client = OpenAIClient()
-openai_client = GeminiClient()
+openai_client = OpenAIClient()
+#openai_client = GeminiClient()
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 app.add_middleware(
