@@ -1,7 +1,9 @@
+<!-- CommunityPostCard.vue -->
 <template>
   <div class="post-card" @click="$emit('click')">
     <div class="post-header">
       <h3 class="post-title">{{ post.title }}</h3>
+      <!-- 💡 년.월.일 포맷으로 항상 일정하게 표시 -->
       <span class="post-date">{{ formatDate(post.created_at) }}</span>
     </div>
     <div class="post-meta">
@@ -25,7 +27,12 @@ export default {
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR');
+      // 'ko-KR' 포맷을 적용하여 "2026. 07. 16." 형태로 변환합니다.
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
     },
     getCategoryLabel(categoryId) {
       const categories = {

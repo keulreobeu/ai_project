@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from datetime import datetime, timezone
-
+from sqlalchemy.sql import func
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from app.orm import Base
 from datetime import datetime
@@ -45,6 +45,6 @@ class CommunityPost(Base):
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     password = Column(String, nullable=False)  # 평문 저장 (교육 목적)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, nullable=True)
     view_count = Column(Integer, default=0)

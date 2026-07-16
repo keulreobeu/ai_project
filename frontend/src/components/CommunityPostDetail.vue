@@ -11,7 +11,9 @@
         <div class="detail-meta-row">
           <div class="detail-meta">
             <span class="category-badge">{{ getCategoryLabel(post.category) }}</span>
+            <!-- 💡 작성일: 년.월.일 시:분 전체 노출 -->
             <span class="meta-item">작성: {{ formatDateTime(post.created_at) }}</span>
+            <!-- 💡 수정된 경우에만 수정일(년.월.일 시:분)이 노출됩니다 -->
             <span v-if="isEdited" class="meta-item">수정: {{ formatDateTime(post.updated_at) }}</span>
             <span class="meta-item">조회수: {{ post.view_count ?? 0 }}</span>
           </div>
@@ -105,10 +107,7 @@ export default {
   },
   computed: {
     isEdited() {
-      if (!this.post.created_at || !this.post.updated_at) return false;
-      const createdTime = new Date(this.post.created_at).getTime();
-      const updatedTime = new Date(this.post.updated_at).getTime();
-      return Math.abs(updatedTime - createdTime) > 1000;
+      return !!this.post.updated_at && this.post.updated_at !== 0;
     },
   },
   methods: {

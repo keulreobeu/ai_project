@@ -205,7 +205,7 @@ def create_community_post(post_data: CommunityPostCreate) -> CommunityPostOut:
             content=post_data.content,
             password=_hash_password(post_data.password),
             created_at=now,
-            updated_at=now,
+            updated_at=None,
             view_count=0
         )
         db.add(db_post)

@@ -69,7 +69,7 @@ class CommunityPostOut(BaseModel):
     title: str
     content: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None
     view_count: int
 
     model_config = ConfigDict(from_attributes=True)
