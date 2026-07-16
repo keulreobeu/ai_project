@@ -52,8 +52,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="LocalHub API", lifespan=lifespan)
-# openai_client = OpenAIClient()
-openai_client = GeminiClient()
+openai_client = OpenAIClient()
+#openai_client = GeminiClient()
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 origins = [
     #"https://your-vue-app.onrender.com",  # Vue 3가 배포된 Render 실주소 (반드시 입력!)
