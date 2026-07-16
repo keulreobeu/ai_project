@@ -49,6 +49,7 @@
           class="password-input"
           @keyup.enter="confirmEditPassword"
         />
+        <p v-if="editError" class="error-text">{{ editError }}</p>
 
         <div class="confirm-actions">
           <button @click="confirmEditPassword" class="btn-confirm primary">확인</button>
@@ -73,6 +74,7 @@
           class="password-input"
           @keyup.enter="confirmDelete"
         />
+        <p v-if="deleteError" class="error-text">{{ deleteError }}</p>
         <div class="confirm-actions">
           <button @click="confirmDelete" class="btn-confirm delete">삭제</button>
           <button @click="closeDeletePasswordModal" class="btn-confirm cancel">취소</button>
@@ -83,7 +85,7 @@
 </template>
 
 <script>
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001';
+import { verifyPostPassword } from '../api/posts';
 
 export default {
   name: 'CommunityPostDetail',
@@ -166,15 +168,9 @@ export default {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/community/posts/${this.post.post_id}/verify-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: enteredPassword }),
-        });
+        const result = await verifyPostPassword(this.post.post_id, enteredPassword);
 
-        const result = await response.json();
-
-        if (!response.ok || !result.valid) {
+        if (!result.valid) {
           alert("비밀번호를 다시 확인해주세요.");
           return;
         }
@@ -183,7 +179,7 @@ export default {
         // 💡 부모 컴포넌트로 'edit' 이벤트를 보낼 때, 검증이 끝난 비밀번호(enteredPassword)도 인자로 보냅니다.
         this.$emit('edit', this.post.post_id, enteredPassword);
       } catch (error) {
-        this.editError = '비밀번호 확인 중 오류가 발생했습니다.';
+        this.editError = error.message || '비밀번호 확인 중 오류가 발생했습니다.';
       }
     },
     async confirmDelete() {
@@ -193,20 +189,15 @@ export default {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/community/posts/${this.post.post_id}/verify-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: enteredPassword }),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.valid) {
+        const result = await verifyPostPassword(this.post.post_id, enteredPassword);
+        if (!result.valid) {
           alert("비밀번호를 다시 확인해주세요.");
           return;
         }
         this.closeDeletePasswordModal();
         this.$emit('delete', this.post.post_id, enteredPassword);
       } catch (error) {
-        this.deleteError = '비밀번호 확인 중 오류가 발생했습니다.';
+        this.deleteError = error.message || '비밀번호 확인 중 오류가 발생했습니다.';
       }
     },
   },
