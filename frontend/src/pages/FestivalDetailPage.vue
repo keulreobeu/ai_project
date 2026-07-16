@@ -42,8 +42,23 @@
       </div>
       <div class="info-panel">
         <h3>축제 정보</h3>
-        <p>{{ festival.address }}</p>
-        <p>상세 페이지에서는 축제 소개, 지도, 주변 관광지, 숙박, 레포츠, 문화시설, 쇼핑 정보를 함께 보여줄 예정입니다.</p>
+        <dl class="festival-summary">
+          <div><dt>시작</dt><dd>{{ festival.event_start_date || '정보 없음' }}</dd></div>
+          <div><dt>끝</dt><dd>{{ festival.event_end_date || '정보 없음' }}</dd></div>
+          <div><dt>위치</dt><dd>{{ festival.address || '정보 없음' }}</dd></div>
+          <div><dt>장소</dt><dd>{{ festival.event_place || '정보 없음' }}</dd></div>
+          <div><dt>운영시간</dt><dd>{{ festival.playtime || '정보 없음' }}</dd></div>
+          <div><dt>이용요금</dt><dd>{{ festival.fee || '정보 없음' }}</dd></div>
+        </dl>
+        <section class="curated-info">
+          <h4>주요 프로그램</h4>
+          <p>{{ festival.program_summary || '등록된 주요 프로그램 정보가 없습니다.' }}</p>
+        </section>
+        <section class="curated-info">
+          <h4>주변 같이 즐기면 좋은 추천 장소</h4>
+          <p>{{ festival.nearby_recommendation || '등록된 주변 추천 정보가 없습니다.' }}</p>
+          <small>DB에 등록된 실제 장소와 축제 위치 사이의 거리를 기준으로 Codex가 정리한 추천입니다.</small>
+        </section>
         <div class="range-control">
           <div class="range-control-heading">
             <label for="nearby-radius">지도 주변 범위</label>
@@ -238,6 +253,35 @@ watch(() => route.params.festivalId, loadFestivalDetail);
   border-radius: 16px;
   background: #f8fafc;
 }
+
+.festival-summary {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.festival-summary > div {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.festival-summary dt { color: var(--color-muted); font-weight: 700; }
+.festival-summary dd { margin: 0; line-height: 1.6; }
+
+.curated-info {
+  margin: 18px 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.curated-info h4 { margin: 0 0 8px; }
+.curated-info p { margin: 0; line-height: 1.75; white-space: pre-line; }
+.curated-info small { display: block; margin-top: 8px; color: var(--color-muted); line-height: 1.5; }
 
 .range-control-heading {
   display: flex;

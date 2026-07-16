@@ -26,6 +26,11 @@ def test_festival_detail_endpoint_returns_detail():
     response = client.get(f"/api/festivals/{festivals[0]['id']}")
     assert response.status_code == 200
     assert "title" in response.json()
+    assert response.json()["description"]
+    assert response.json()["event_start_date"]
+    assert response.json()["event_end_date"]
+    assert response.json()["program_summary"]
+    assert response.json()["nearby_recommendation"]
 
 
 def test_festivals_endpoint_supports_pagination():

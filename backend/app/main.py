@@ -18,7 +18,7 @@ from typing import Annotated
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app import services
@@ -40,6 +40,14 @@ from app.schemas import (
 
 def initialize_database() -> None:
     Base.metadata.create_all(bind=ENGINE)
+    place_columns = {column["name"] for column in inspect(ENGINE).get_columns("places")}
+    with ENGINE.begin() as connection:
+        if "description" not in place_columns:
+            connection.execute(text("ALTER TABLE places ADD COLUMN description TEXT"))
+        if "program_summary" not in place_columns:
+            connection.execute(text("ALTER TABLE places ADD COLUMN program_summary TEXT"))
+        if "nearby_recommendation" not in place_columns:
+            connection.execute(text("ALTER TABLE places ADD COLUMN nearby_recommendation TEXT"))
 
 
 initialize_database()

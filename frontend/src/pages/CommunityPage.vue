@@ -267,10 +267,11 @@ export default {
 .community-page {
   min-height: 100vh;
   background-color: #f8fafc;
-  padding: 24px;
+  width: 100%;
+  padding: 24px 0;
 }
 .community-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 40px;
 }
 .community-header h1 {
@@ -284,8 +285,9 @@ export default {
   color: #6b7280;
 }
 .community-container {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 .category-tabs {
   display: flex;

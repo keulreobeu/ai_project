@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import os
 from sqlalchemy.orm import Session
 from app.models import Place, CommunityPost
@@ -105,6 +106,7 @@ def fetch_festival_detail(festival_id: int):
         row = db.query(Place).filter(Place.place_id == festival_id, Place.content_type_id == 15).first()
         if not row:
             return None
+        source = json.loads(row.source_data or "{}")
         return FestivalDetailOut(
             id=row.place_id,
             title=row.title or "",
@@ -113,6 +115,14 @@ def fetch_festival_detail(festival_id: int):
             image_url=row.image_url,
             latitude=row.latitude,
             longitude=row.longitude,
+            description=row.description,
+            event_start_date=row.event_start_date,
+            event_end_date=row.event_end_date,
+            event_place=source.get("eventplace"),
+            playtime=source.get("playtime"),
+            fee=source.get("usetimefestival"),
+            program_summary=row.program_summary,
+            nearby_recommendation=row.nearby_recommendation,
         ).model_dump()
     finally:
         db.close()

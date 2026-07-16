@@ -30,7 +30,14 @@ class FestivalOut(BaseModel):
 
 
 class FestivalDetailOut(FestivalOut):
-    pass
+    description: str | None = None
+    event_start_date: str | None = None
+    event_end_date: str | None = None
+    event_place: str | None = None
+    playtime: str | None = None
+    fee: str | None = None
+    program_summary: str | None = None
+    nearby_recommendation: str | None = None
 
 
 class CalendarFestivalOut(FestivalOut):

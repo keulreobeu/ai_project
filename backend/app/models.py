@@ -35,6 +35,9 @@ class Place(Base):
     updated_at = Column(String)
     event_start_date = Column(String)
     event_end_date = Column(String)
+    description = Column(Text)
+    program_summary = Column(Text)
+    nearby_recommendation = Column(Text)
 
 
 class CommunityPost(Base):

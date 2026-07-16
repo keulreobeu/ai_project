@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-widget">
+  <div class="chat-widget" :style="{ '--chat-bottom-offset': `${footerOffset}px` }">
     <button class="chatbot-floating" aria-label="챗봇 열기" @click="open = !open">💬</button>
     <div v-if="open" class="chat-panel">
       <div class="chat-header">
@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 
 /**
  * @typedef {Object} ChatSource
@@ -91,6 +91,29 @@ const draft = ref('');
 const loading = ref(false);
 /** @type {import('vue').Ref<HTMLElement|null>} */
 const messagesEl = ref(null);
+const footerOffset = ref(28);
+
+const updateFooterOffset = () => {
+  const footer = document.querySelector('.site-footer');
+  if (!footer) {
+    footerOffset.value = 28;
+    return;
+  }
+
+  const visibleFooterHeight = Math.max(0, window.innerHeight - footer.getBoundingClientRect().top);
+  footerOffset.value = visibleFooterHeight > 0 ? visibleFooterHeight + 28 : 28;
+};
+
+onMounted(() => {
+  updateFooterOffset();
+  window.addEventListener('scroll', updateFooterOffset, { passive: true });
+  window.addEventListener('resize', updateFooterOffset);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', updateFooterOffset);
+  window.removeEventListener('resize', updateFooterOffset);
+});
 
 /** @type {import('vue').Ref<ChatMessageEntry[]>} */
 const messages = ref([

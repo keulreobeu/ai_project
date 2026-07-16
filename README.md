@@ -1,5 +1,7 @@
 # Seoul Festival Explorer
 
+Data attribution and usage conditions are documented in [DATA_SOURCES_AND_LICENSES.md](DATA_SOURCES_AND_LICENSES.md).
+
 This project implements a small Seoul festival explorer using:
 - FastAPI for the backend API
 - Vue 3 for the frontend UI
