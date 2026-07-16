@@ -12,11 +12,12 @@ from app.models import CommunityPost
 from app.services import _verify_password
 from contextlib import asynccontextmanager
 from math import ceil
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -53,6 +54,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="LocalHub API", lifespan=lifespan)
 # openai_client = OpenAIClient()
 openai_client = GeminiClient()
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 app.add_middleware(
     CORSMiddleware,
@@ -271,3 +273,24 @@ def chat(request: ChatRequest):
         for post in posts
     )
     return ChatResponse(answer=answer, sources=sources)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend(full_path: str):
+    """Serve the built Vue app and fall back to index.html for client routes."""
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    index_path = FRONTEND_DIST / "index.html"
+    if not index_path.is_file():
+        raise HTTPException(status_code=503, detail="frontend build is not available")
+
+    requested_path = (FRONTEND_DIST / full_path).resolve()
+    try:
+        requested_path.relative_to(FRONTEND_DIST.resolve())
+    except ValueError:
+        requested_path = index_path
+
+    if full_path and requested_path.is_file():
+        return FileResponse(requested_path)
+    return FileResponse(index_path)
